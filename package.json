@@ -1,0 +1,7 @@
+{
+  "name": "findr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Find/r, agence de placement 2.0",
+  "engines": { "node": ">=18" }
+}

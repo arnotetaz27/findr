@@ -1,0 +1,1825 @@
+<title>Prototype Find/r</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one centred column per step. Profile and verification steps are two columns that stack on phones. */
+:root{
+  --bg:#F3F7F6; --surface:#FFFFFF; --ink:#172B2D; --muted:#4E6466;
+  --accent:#1F7A74; --accent-ink:#FFFFFF; --soft:#DCEEEB; --line:#B5CBC8;
+  --warm:#E0794F; --danger:#B3321D; --focus:#C2552D;
+  --display:'Bricolage Grotesque',system-ui,sans-serif;
+  --body:'Plus Jakarta Sans',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1C1D; --surface:#162729; --ink:#E8F1F0; --muted:#9DB5B3;
+    --accent:#4FB5AC; --accent-ink:#0B1819; --soft:#1F3A3A; --line:#3B5655;
+    --warm:#F0906A; --danger:#FF8A75; --focus:#F0906A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1C1D; --surface:#162729; --ink:#E8F1F0; --muted:#9DB5B3;
+  --accent:#4FB5AC; --accent-ink:#0B1819; --soft:#1F3A3A; --line:#3B5655;
+  --warm:#F0906A; --danger:#FF8A75; --focus:#F0906A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:24px}
+.wrap{max-width:1120px;margin-inline:auto;display:flex;flex-direction:column;gap:28px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.logo{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:-.5px}
+.logo span{color:var(--warm)}
+.steps{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;color:var(--muted)}
+.bars{display:flex;gap:6px}
+.bars i{width:30px;height:6px;border-radius:3px;background:var(--line)}
+.bars i.on{background:var(--accent)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,5vw,44px);line-height:1.08;letter-spacing:-1px;margin:0 0 8px;text-wrap:balance}
+h2{font-size:17px;margin:0}
+.lead{margin:0;font-size:17px;color:var(--muted);max-width:62ch}
+section[hidden]{display:none}
+section{display:flex;flex-direction:column;gap:22px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:24px;align-items:start}
+.cols.verify{grid-template-columns:minmax(0,420px) minmax(0,1fr)}
+@media (max-width:860px){.cols,.cols.verify{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:20px;min-width:0}
+.card{background:var(--surface);border-radius:20px;padding:22px 26px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.hint{font-size:14px;color:var(--muted);margin:0}
+.drop{position:relative;border:2px dashed var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.drop.over,.drop:focus-within{border-color:var(--accent);background:var(--soft)}
+.drop p{margin:0;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 26px;border-radius:24px;border:0;background:var(--accent);color:var(--accent-ink);font:700 16px var(--body);cursor:pointer;text-decoration:none}
+.btn.big{min-height:56px;font-size:18px;border-radius:28px}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{min-height:44px;padding:0 18px;border-radius:22px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px var(--body);cursor:pointer}
+.chip[aria-pressed="true"],.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tag{display:inline-flex;align-items:center;min-height:34px;padding:0 14px;border-radius:17px;background:var(--soft);font:600 14px var(--body)}
+.inp{width:100%;min-height:44px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:400 15px var(--body)}
+.inp.strong{font-weight:600}
+.area{padding:10px 12px;min-height:104px;line-height:1.45;resize:vertical}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld label{font-size:13px;font-weight:600;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.two{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:10px}
+.three{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.2fr) minmax(0,1fr);gap:10px}
+@media (max-width:560px){.grid2,.two,.three{grid-template-columns:minmax(0,1fr)}}
+.item{display:flex;flex-direction:column;gap:10px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.link{align-self:flex-start;background:none;border:0;color:var(--muted);font:600 14px var(--body);text-decoration:underline;cursor:pointer;padding:8px 0}
+.empty{margin:0;font-size:14px;color:var(--muted)}
+.msg{margin:0;padding:12px 16px;border-radius:12px;background:var(--soft);font-size:15px}
+.msg.err{border:1.5px solid var(--danger)}
+.files{display:flex;flex-direction:column;gap:10px}
+.file{display:flex;align-items:center;gap:14px;background:var(--soft);border-radius:16px;padding:14px 18px;flex-wrap:wrap}
+.file .name{flex:1;min-width:0;overflow-wrap:anywhere}
+.file b{display:block}
+.file .btn{min-height:40px;padding:0 18px;font-size:14px}
+.row{display:flex;gap:10px}
+.row .inp{flex:1;min-width:0}
+.actions{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+details summary{cursor:pointer;font-weight:600;font-size:15px}
+textarea.json{min-height:240px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;padding:12px;line-height:1.5}
+.center{align-items:center;text-align:center;padding-block:40px}
+.avatar{position:relative;width:180px;height:180px}
+.avatar .disc{position:absolute;inset:0;border-radius:50%;overflow:hidden;background:#CFE7E3}
+.avatar .ring{position:absolute;inset:0;border-radius:50%;border:4px solid var(--accent);animation:pulse 2.2s ease-out infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.16);opacity:0}}
+@media (prefers-reduced-motion:reduce){.avatar .ring{animation:none;opacity:.35}}
+.recap{display:flex;flex-direction:column;gap:20px}
+.recap .who{font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:-.5px;margin:0}
+.recap .meta{margin:0;color:var(--muted);font-size:15px}
+.recap .role{font-weight:700;margin:0}
+.recap .when{font-size:14px;color:var(--muted);margin:0}
+.recap .desc{margin:0;font-size:15px;white-space:pre-line}
+.recap .item:last-child{border-bottom:0;padding-bottom:0}
+
+.orbbox{border-radius:28px;background:radial-gradient(circle at 50% 40%,#12383A 0%,#0A1A1C 70%);overflow:hidden;width:100%;aspect-ratio:1/1}
+.orbbox canvas{width:100%;height:100%;display:block}
+.center .orbbox{width:min(280px,80%)}
+.stage{align-items:center;gap:14px}
+.stage .orbbox{width:min(100%,420px)}
+.progress{width:100%;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.qtext{font-family:var(--display);font-weight:600;font-size:clamp(22px,3.2vw,30px);line-height:1.25;margin:0;text-wrap:balance}
+.cols.iv{grid-template-columns:minmax(0,420px) minmax(0,1fr)}
+@media (max-width:860px){.cols.iv{grid-template-columns:minmax(0,1fr)}}
+textarea.answer{min-height:200px;font-size:16px}
+.mic{align-self:flex-start;gap:10px}
+.mic[aria-pressed="true"]{background:var(--warm);color:#fff}
+.mic .dot{width:10px;height:10px;border-radius:50%;background:currentColor}
+.mic[aria-pressed="true"] .dot{animation:blinkdot 1.1s ease-in-out infinite}
+@keyframes blinkdot{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.mic[aria-pressed="true"] .dot{animation:none}}
+.qa{display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.qa:last-child{border-bottom:0;padding-bottom:0}
+.qa .q{font-weight:700;margin:0}
+.qa .a{margin:0;white-space:pre-line;font-size:15px}
+.qa .a.none{color:var(--muted);font-style:italic}
+.voicebox summary{cursor:pointer;font-weight:600;font-size:15px}
+.voicebox .inner{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+select.inp{padding:0 10px}
+.dash{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.dash{grid-template-columns:minmax(0,1fr)}}
+.prof{align-items:flex-start}
+.pic{width:112px;height:112px;border-radius:50%;background:var(--soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font:700 40px var(--display);overflow:hidden;border:3px solid var(--surface);box-shadow:0 0 0 2px var(--accent)}
+.pic img{width:100%;height:100%;object-fit:cover;display:block}
+.dname{font-size:clamp(26px,3vw,32px);margin:0}
+.bigh{font-family:var(--display);font-size:24px;letter-spacing:-.4px;margin:0 0 4px}
+.jobs{display:flex;flex-direction:column;gap:14px}
+.job{background:var(--surface);border-radius:20px;padding:20px 24px;display:flex;flex-direction:column;gap:12px}
+.jobhead{display:flex;gap:16px;align-items:flex-start;justify-content:space-between}
+.job h3{margin:0;font-size:18px}
+.job .co{margin:2px 0 0;color:var(--muted);font-size:14px}
+.score{flex:none;text-align:center;min-width:76px}
+.score b{display:block;font:700 28px var(--display);color:var(--accent);line-height:1}
+.score span{font-size:12px;font-weight:600;color:var(--muted)}
+.meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+.job.mid .score b{color:var(--warm)}.job.mid .meter i{background:var(--warm)}
+.job .why{display:flex;flex-wrap:wrap;gap:8px}
+.tag.ok{background:var(--soft)}
+.tag.gap{background:transparent;border:1.5px solid var(--warm)}
+.job details summary{font-size:14px;color:var(--muted)}
+.cmp{display:grid;grid-template-columns:minmax(0,1.2fr) repeat(2,minmax(0,1fr));gap:6px 12px;font-size:14px;margin-top:10px;align-items:center}
+.cmp b{font-size:12px;color:var(--muted)}
+.lvl{display:inline-flex;gap:3px}.lvl i{width:18px;height:8px;border-radius:2px;background:var(--line)}.lvl i.on{background:var(--accent)}.lvl.want i.on{background:var(--warm)}
+.hidden-steps .steps{display:none}
+.toppic{width:40px;height:40px;border-radius:50%;background:var(--soft);color:var(--accent);display:none;align-items:center;justify-content:center;font:700 16px var(--display);overflow:hidden;border:0;padding:0;cursor:pointer}
+.toppic img{width:100%;height:100%;object-fit:cover}
+.in-app .toppic{display:flex}
+.dlg{border:0;border-radius:20px;padding:24px 26px;max-width:min(520px,calc(100vw - 32px));width:100%;background:var(--surface);color:var(--ink)}.dlg::backdrop{background:rgba(10,26,28,.55)}.dlg[open]{display:flex;flex-direction:column;gap:14px}.jobfoot{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.btn.sent{background:var(--soft);color:var(--ink);cursor:default}.jd h4{margin:14px 0 6px;font-size:14px}.jd ul{margin:0;padding-left:20px}.jd p{margin:0}
+.chip.on-edit{min-height:38px;padding:0 14px;font-size:14px}.chip.on-edit.gap{border-color:var(--warm);background:transparent}
+.eyebrow{margin:0;font:700 13px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.hero{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:center;gap:32px}
+@media (max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
+.how{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:12px}
+@media (max-width:860px){.how{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.how{grid-template-columns:minmax(0,1fr)}}
+.how h3{margin:0;font-size:17px}.how p{margin:0}
+.num{width:34px;height:34px;border-radius:50%;background:var(--soft);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font:700 16px var(--display)}
+.ticks{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.ticks li{padding-left:26px;position:relative;font-size:15px}
+.ticks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.authbox{max-width:480px;margin-inline:auto;width:100%;display:flex;flex-direction:column;gap:20px}
+.logout{align-self:flex-start}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="logo">Find<span>/</span>r</div>
+    <button type="button" class="toppic" id="toppic" aria-label="Mon espace"></button>
+    <div class="steps"><span id="steps-label">Étape 1 sur 4</span><div class="bars" id="bars"><i class="on"></i><i></i><i></i><i></i></div></div>
+  </header>
+
+  <main>
+    <section id="s-welcome">
+      <div class="cols hero">
+        <div class="stack">
+          <p class="eyebrow">Agence de placement 2.0</p>
+          <h1>Un seul entretien.<br>Tous les postes qui te correspondent.</h1>
+          <p class="lead">Tu passes un entretien avec Lisa, notre interlocutrice IA, une seule fois. Elle comprend qui tu es et ce que tu cherches. Ensuite, Find/r te montre les postes qui te ressemblent vraiment, et tu postules en un clic. Les entreprises, elles, voient à quel point tu leur corresponds, sans lettre de motivation.</p>
+          <div class="row" style="flex-wrap:wrap">
+            <button type="button" class="btn big" id="w-start">Créer mon profil</button>
+            <button type="button" class="btn ghost big" id="w-login">J’ai déjà un compte</button>
+          </div>
+          <p class="hint">Gratuit pour les candidats.</p>
+        </div>
+        <div class="orbbox" style="max-width:380px;justify-self:center"><canvas id="orb-w" role="img" aria-label="Lisa, l’interlocutrice IA de Find/r"></canvas></div>
+      </div>
+
+      <div>
+        <h2 class="bigh">Comment ça marche</h2>
+        <div class="how">
+          <div class="card"><span class="num">1</span><h3>Dépose ton CV</h3><p class="hint">Lisa le lit et remplit ton profil. Tu relis et tu corriges. Sans CV, tu peux tout saisir à la main.</p></div>
+          <div class="card"><span class="num">2</span><h3>Parle avec Lisa</h3><p class="hint">Un entretien oral d’environ 40 minutes : ton parcours, ce que tu cherches, ta façon de travailler. Elle te relance quand c’est utile.</p></div>
+          <div class="card"><span class="num">3</span><h3>Relis tes réponses</h3><p class="hint">Tout est retranscrit. Tu peux corriger une fois, puis tes réponses sont figées.</p></div>
+          <div class="card"><span class="num">4</span><h3>Reçois tes matchs</h3><p class="hint">Tu vois les postes classés par compatibilité, avec la description, et tu postules. Tu peux repasser l’entretien quand tu veux.</p></div>
+        </div>
+      </div>
+
+      <div class="cols">
+        <div class="card">
+          <h2>Avant de commencer</h2>
+          <ul class="ticks">
+            <li>Prévois environ <b>40 minutes</b>, au calme.</li>
+            <li>Utilise <b>Chrome ou Edge</b>, avec un micro. Tu peux aussi répondre au clavier.</li>
+            <li>Garde ton <b>CV</b> à portée (PDF ou Word). Il est facultatif, mais il rend l’entretien plus précis.</li>
+            <li>Réponds comme à un vrai entretien : des exemples vécus valent mieux que de grandes phrases.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h2>Ce qu’il faut savoir</h2>
+          <ul class="ticks">
+            <li>Il n’y a <b>pas de bonne ou de mauvaise réponse</b> : l’idée est de trouver les postes où tu seras à ta place.</li>
+            <li>Tu <b>vois tout</b> ce que Lisa retient de toi, et tu peux modifier ce que tu recherches à tout moment.</li>
+            <li>Les entreprises ne voient ton profil que si tu <b>postules</b>.</li>
+            <li>Ceci est un <b>prototype</b> : les offres sont fictives et ton compte reste sur cet appareil.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="s-login" hidden>
+      <div class="authbox">
+        <div>
+          <h1 id="au-title">Créer mon profil</h1>
+          <p class="lead" id="au-lead">Quelques secondes, puis tu déposes ton CV.</p>
+        </div>
+        <div class="card">
+          <div class="chips" role="tablist" aria-label="Choix">
+            <button type="button" class="chip" id="tab-up" role="tab">Créer un compte</button>
+            <button type="button" class="chip" id="tab-in" role="tab">Me connecter</button>
+          </div>
+          <form id="auth-form" class="stack" style="gap:14px" novalidate>
+            <div class="fld" id="au-first-w"><label for="au-first">Prénom</label><input class="inp" id="au-first" autocomplete="given-name"></div>
+            <div class="fld"><label for="au-email">E-mail</label><input class="inp" id="au-email" type="email" autocomplete="email" required></div>
+            <div class="fld"><label for="au-pw">Mot de passe</label><input class="inp" id="au-pw" type="password" autocomplete="current-password" required><span class="hint" id="au-pwhint">8 caractères minimum.</span></div>
+            <p class="msg err" id="au-msg" role="alert" hidden></p>
+            <button type="submit" class="btn big" id="au-go">Créer mon compte</button>
+          </form>
+          <p class="hint">Prototype : ton compte est enregistré uniquement sur cet appareil et ce navigateur, pas sur un serveur. Un vrai compte en ligne viendra avec la version publique.</p>
+        </div>
+        <button type="button" class="link" id="au-back">← Retour à la présentation</button>
+      </div>
+    </section>
+
+    <section id="s-profile" hidden>
+      <div>
+        <h1>Faisons connaissance</h1>
+        <p class="lead">Dépose ton ou tes CV pour que Lisa les lise, puis dis-nous ce que tu recherches.</p>
+      </div>
+      <div class="cols">
+        <div class="stack">
+          <div class="card">
+            <h2>Tes CV</h2>
+            <div class="files" id="files"></div>
+            <div class="drop" id="drop">
+              <p id="drop-text">Glisse ton CV ici (PDF, Word .docx ou texte)</p>
+              <label class="btn" for="cv-file" id="pick-label">Choisir un fichier</label>
+              <input id="cv-file" class="sr" type="file" multiple accept=".pdf,.docx,.txt,.md">
+            </div>
+            <details id="paste-box">
+              <summary>Un CV ne se lit pas ? Colle son texte</summary>
+              <div class="fld" style="margin-top:12px">
+                <label for="paste">Texte de ton CV</label>
+                <textarea id="paste" class="inp area" rows="6" placeholder="Colle ici le contenu de ton CV"></textarea>
+              </div>
+            </details>
+            <p class="msg" id="profile-msg" role="status" hidden></p>
+            <p class="hint" id="multi-hint">Le CV est optionnel mais fortement conseillé. Tu peux en ajouter plusieurs, par exemple une version française et une version anglaise : Lisa les fusionne en un seul profil.</p>
+          </div>
+          <div class="card">
+            <h2>Taux de travail souhaité</h2>
+            <div class="chips" id="taux"></div>
+            <p class="hint">Tu peux en choisir plusieurs.</p>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <h2>Où veux-tu travailler ?</h2>
+            <form class="row" id="city-form">
+              <input class="inp" id="city-input" aria-label="Ajouter une ville ou un pays" placeholder="Ex. Genève, Dubaï, Monde entier" autocomplete="off" list="places">
+              <datalist id="places"></datalist>
+              <button type="submit" class="btn">Ajouter</button>
+            </form>
+            <p class="msg err" id="city-msg" role="status" hidden></p>
+            <div class="chips" id="cities"></div>
+            <p class="hint">Ville, pays ou « Monde entier ». Ajoutes-en autant que tu veux.</p>
+          </div>
+          <div class="card">
+            <h2>Mode de travail</h2>
+            <div class="chips" id="modes"></div>
+          </div>
+          <button type="button" class="btn big" id="go">Continuer sans CV</button>
+          <p class="hint" id="sample-note" hidden>L’analyse automatique n’est pas disponible. Tu peux tout remplir à la main.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="s-analyze" class="center" hidden>
+      <div class="orbbox"><canvas id="orb-a" role="img" aria-label="Lisa réfléchit"></canvas></div>
+      <h1 id="analyze-title">Lisa lit ton CV</h1>
+      <p class="lead" id="status" aria-live="polite">Lecture du fichier…</p>
+      <button type="button" class="btn ghost" id="stop">Annuler</button>
+    </section>
+
+    <section id="s-verify" hidden>
+      <div>
+        <h1 id="verify-title">Vérifie ce que Lisa a lu dans ton CV</h1>
+        <p class="lead">Corrige ou complète si besoin. Ces infos servent à préparer les questions de ton entretien.</p>
+      </div>
+      <p class="msg" id="verify-msg" role="status" hidden></p>
+      <div class="cols verify">
+        <div class="stack">
+          <div class="card">
+            <h2>Toi</h2>
+            <div class="grid2" id="ident"></div>
+          </div>
+          <div class="card">
+            <h2>Formation</h2>
+            <div id="formations"></div>
+            <button type="button" class="btn ghost" id="add-formation" style="align-self:flex-start">Ajouter une formation</button>
+          </div>
+          <div class="card">
+            <h2>Compétences</h2>
+            <div class="chips" id="skills"></div>
+            <form class="row" id="skill-form">
+              <input class="inp" id="skill-input" aria-label="Ajouter une compétence" placeholder="Ajouter une compétence" autocomplete="off">
+              <button type="submit" class="btn ghost">Ajouter</button>
+            </form>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Expériences professionnelles</h2>
+          <div id="exps"></div>
+          <button type="button" class="btn ghost" id="add-exp" style="align-self:flex-start">Ajouter une expérience</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn ghost" id="back">Retour</button>
+        <div class="row" style="align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" id="generic" hidden>Utiliser des questions génériques</button><button type="button" class="btn big" id="confirm">Tout est correct, continuer</button></div>
+      </div>
+    </section>
+
+    <section id="s-interview" hidden>
+      <div class="cols iv">
+        <div class="stack">
+          <div class="card stage">
+            <div class="orbbox"><canvas id="orb-b" role="img" aria-label="Lisa, ton interlocutrice"></canvas></div>
+            <span class="tag" id="iv-state" aria-live="polite">Lisa parle</span>
+            <div class="progress" role="progressbar" aria-label="Avancement de l’entretien" aria-valuemin="0" aria-valuemax="100" id="iv-prog"><i id="iv-bar"></i></div>
+            <p class="hint" id="iv-count">Question 1</p>
+          </div>
+          <details class="card voicebox">
+            <summary>Voix de Lisa</summary>
+            <div class="inner">
+              <div class="chips"><button type="button" class="chip" id="voice-toggle" aria-pressed="true">Voix activée</button></div>
+              <div class="fld"><label for="voice">Voix française de cet appareil</label><select id="voice" class="inp"></select></div>
+              <p class="hint" id="voice-note">Les voix viennent de ton navigateur. Leur qualité change selon l’appareil.</p>
+            </div>
+          </details>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <p class="hint" style="font-weight:600">Lisa te demande</p>
+            <p class="qtext" id="iv-q"></p>
+            <div><button type="button" class="btn ghost" id="iv-repeat" style="min-height:40px;padding:0 18px;font-size:14px">Répéter la question</button></div>
+          </div>
+          <div class="card">
+            <h2>Ta réponse</h2>
+            <button type="button" class="btn mic" id="mic" aria-pressed="false"><span class="dot" aria-hidden="true"></span><span id="mic-label">Répondre à voix haute</span></button>
+            <p class="hint" id="mic-note" role="status"></p>
+            <div class="fld">
+              <label for="iv-answer">Ta réponse, dictée ou écrite</label>
+              <textarea id="iv-answer" class="inp area answer" placeholder="Ta réponse apparaît ici pendant que tu parles. Tu peux aussi écrire."></textarea>
+            </div>
+            <div class="actions">
+              <button type="button" class="link" id="iv-skip">Passer cette question</button>
+              <button type="button" class="btn big" id="iv-next">Question suivante</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="s-dash" hidden>
+      <div class="dash">
+        <aside class="stack">
+          <div class="card prof">
+            <button type="button" class="link logout" id="logout" style="padding:0">Se déconnecter</button>
+            <div class="pic" id="pic" aria-hidden="true"></div>
+            <h1 id="d-name" class="dname">Mon espace</h1>
+            <p class="lead" id="d-role" style="font-size:15px"></p>
+            <p class="hint" id="d-where"></p>
+            <div class="row" style="flex-wrap:wrap">
+              <label class="btn ghost" for="photo-file" style="min-height:40px;font-size:14px;padding:0 18px">Choisir une photo</label>
+              <input type="file" id="photo-file" class="sr" accept="image/*">
+              <button type="button" class="btn ghost" id="photo-del" style="min-height:40px;font-size:14px;padding:0 18px" hidden>Retirer</button>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Mon entretien</h2>
+            <p class="hint" id="d-when"></p>
+            <p class="msg" id="d-prov" hidden></p>
+            <button type="button" class="btn" id="redo-same">Repasser l’entretien</button>
+            <p class="hint" style="margin-top:-6px">Avec le CV déjà enregistré, de nouvelles questions.</p>
+            <button type="button" class="btn ghost" id="redo-new">Repasser avec un nouveau CV</button>
+            <p class="hint" id="d-apps" style="margin:0"></p>
+            <button type="button" class="link" id="see-profile">Voir mon CV et mes réponses</button>
+          </div>
+          <div class="card" id="d-seek-card"></div>
+          <div class="card">
+            <h2>Ce que Lisa a retenu</h2>
+            <p class="lead" id="d-syn" style="font-size:15px"></p>
+            <div class="chips" id="d-strong"></div>
+            <h2 style="margin-top:6px">Outils et logiciels</h2>
+            <div class="chips" id="d-tools"></div>
+          </div>
+        </aside>
+        <div class="stack">
+          <div>
+            <h2 class="bigh">Postes qui te correspondent</h2>
+            <p class="hint">Offres fictives de démonstration. Le score mélange ta personnalité (70 %) et ton parcours (30 %), ajusté selon ce que tu recherches : ce qui compte, c’est la proximité avec le niveau que l’entreprise recherche, pas « plus c’est haut, mieux c’est ».</p>
+          </div>
+          <div class="jobs" id="jobs"></div>
+        </div>
+      </div>
+    </section>
+
+    <dialog id="apply" class="dlg" aria-labelledby="ap-h">
+      <h2 id="ap-h">Postuler</h2>
+      <p class="hint" id="ap-title"></p>
+      <p class="lead" style="font-size:15px">L’entreprise recevra ton profil vérifié, ton score de compatibilité et ton entretien avec Lisa. Tu n’as pas de lettre de motivation à écrire.</p>
+      <div class="fld"><label for="ap-msg">Un mot pour l’entreprise (facultatif)</label><textarea id="ap-msg" class="inp area" rows="3" maxlength="600"></textarea></div>
+      <div class="actions"><button type="button" class="btn ghost" id="ap-cancel">Annuler</button><button type="button" class="btn" id="ap-send">Envoyer ma candidature</button></div>
+    </dialog>
+
+    <section id="s-review" hidden>
+      <div>
+        <h1>Relis ton entretien</h1>
+        <p class="lead">Voici les questions de Lisa et tes réponses, telles qu’elles ont été retranscrites. Tu peux les corriger <b>une seule fois</b> : après ta validation, elles sont figées.</p>
+      </div>
+      <div class="card" id="review-list"></div>
+      <div class="actions">
+        <span class="hint">Les erreurs de dictée sont normales : corrige les mots mal compris.</span>
+        <button type="button" class="btn big" id="review-ok">Valider mes réponses</button>
+      </div>
+    </section>
+
+    <section id="s-done" hidden>
+      <div>
+        <h1>Ton profil est prêt</h1>
+        <p class="lead">Voici ton CV vérifié et tes réponses à l’entretien, figés.</p>
+      </div>
+      <div class="recap" id="recap"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="restart">Retour à mon espace</button>
+      </div>
+      <details>
+        <summary>Données brutes (pour le développement)</summary>
+        <div class="card" style="margin-top:12px">
+          <div class="fld">
+            <label for="json">Profil au format JSON</label>
+            <textarea id="json" class="inp json" readonly></textarea>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn ghost" id="copy">Copier les données</button>
+            <span class="hint" id="copy-note" role="status"></span>
+          </div>
+        </div>
+      </details>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  function h(tag, attrs) {
+    var el = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        var v = attrs[k];
+        if (v == null || v === false) return;
+        if (k === 'class') el.className = v;
+        else if (k === 'text') el.textContent = v;
+        else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+        else el.setAttribute(k, v);
+      });
+    }
+    for (var i = 2; i < arguments.length; i++) {
+      var c = arguments[i];
+      if (c == null) continue;
+      el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    }
+    return el;
+  }
+  var uid = 0;
+  function nid(p) { uid += 1; return p + '-' + uid; }
+  function str(v) { return typeof v === 'string' ? v : (v == null ? '' : String(v)); }
+  function emptyData() {
+    return { identite: { prenom: '', nom: '', email: '', telephone: '' }, formations: [], experiences: [], competences: [] };
+  }
+
+  var MAX_FILES = 4;
+  var TAUX = ['20 – 40%', '40 – 60%', '60 – 80%', '80 – 100%'];
+  var MODES = ['Présentiel', 'Hybride', 'Télétravail'];
+  var S = { files: [], cities: [], taux: {}, modes: {}, data: emptyData(), ctl: null, sample: null, analyzed: false, sources: [], skipped: [], q: [], answers: [], i: 0, locked: false };
+
+  /* ---------- steps ---------- */
+  function show(name, over) {
+    if (name !== 'interview') { stopSpeak(); stopMic(); }
+    ['welcome', 'login', 'profile', 'analyze', 'verify', 'interview', 'review', 'done', 'dash'].forEach(function (n) { $('#s-' + n).hidden = n !== name; });
+    document.body.classList.toggle('hidden-steps', name === 'dash' || name === 'done' || name === 'welcome' || name === 'login');
+    document.body.classList.toggle('in-app', name === 'dash' || name === 'done');
+    var idx = over || { profile: 1, analyze: 2, verify: 2, interview: 3, review: 4, done: 4, dash: 4 }[name];
+    $('#steps-label').textContent = 'Étape ' + idx + ' sur 4';
+    Array.prototype.forEach.call(document.querySelectorAll('#bars i'), function (b, i) { b.className = i < idx ? 'on' : ''; });
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }
+  function say(el, text, isErr) {
+    el.textContent = text;
+    el.className = 'msg' + (isErr ? ' err' : '');
+    el.hidden = false;
+  }
+
+  /* ---------- profile: chips and cities ---------- */
+  function renderChips(box, names, obj) {
+    box.textContent = '';
+    names.forEach(function (n) {
+      box.appendChild(h('button', {
+        type: 'button', class: 'chip', 'aria-pressed': String(!!obj[n]), text: n,
+        onclick: function () { obj[n] = !obj[n]; renderChips(box, names, obj); }
+      }));
+    });
+  }
+  function renderCities() {
+    var box = $('#cities');
+    box.textContent = '';
+    S.cities.forEach(function (c, i) {
+      box.appendChild(h('button', {
+        type: 'button', class: 'chip on', 'aria-label': 'Retirer ' + c, text: c + ' ×',
+        onclick: function () { S.cities.splice(i, 1); renderCities(); }
+      }));
+    });
+  }
+  /* ---------- lieux: liste connue + vérification ---------- */
+  var PLACES = ('Monde entier|Télétravail|Europe|Asie|Afrique|Amérique du Nord|Amérique du Sud|Océanie|Moyen-Orient|Scandinavie|Suisse romande|Suisse alémanique|Suisse|France|Allemagne|Italie|Espagne|Portugal|Belgique|Pays-Bas|Luxembourg|Autriche|Royaume-Uni|Irlande|Danemark|Suède|Norvège|Finlande|Islande|Pologne|République tchèque|Hongrie|Grèce|Turquie|Croatie|Monaco|Liechtenstein|Malte|Chypre|Roumanie|Bulgarie|Estonie|Lituanie|Lettonie|États-Unis|Canada|Mexique|Brésil|Argentine|Chili|Colombie|Pérou|Émirats arabes unis|Arabie saoudite|Qatar|Koweït|Bahreïn|Oman|Israël|Égypte|Maroc|Tunisie|Algérie|Sénégal|Côte d’Ivoire|Afrique du Sud|Kenya|Nigeria|Chine|Japon|Corée du Sud|Inde|Singapour|Thaïlande|Vietnam|Indonésie|Malaisie|Philippines|Hong Kong|Taïwan|Australie|Nouvelle-Zélande|' +
+    'Genève|Lausanne|Zurich|Berne|Bâle|Lugano|Fribourg|Neuchâtel|Sion|Montreux|Vevey|Nyon|Morges|Yverdon-les-Bains|La Chaux-de-Fonds|Delémont|Bienne|Lucerne|Saint-Gall|Winterthour|Zoug|Coire|Schaffhouse|Thoune|Verbier|Crans-Montana|Gstaad|Zermatt|Interlaken|Carouge|Meyrin|Vernier|Onex|Lancy|Plan-les-Ouates|Satigny|Versoix|Bellinzone|Locarno|' +
+    'Paris|Lyon|Marseille|Toulouse|Nice|Nantes|Strasbourg|Montpellier|Bordeaux|Lille|Rennes|Annecy|Grenoble|Cannes|Annemasse|Thonon-les-Bains|Évian-les-Bains|Chamonix|Saint-Julien-en-Genevois|Ferney-Voltaire|Divonne-les-Bains|Dijon|Reims|Le Havre|Toulon|Nîmes|Aix-en-Provence|Biarritz|La Rochelle|Chambéry|' +
+    'Londres|Manchester|Édimbourg|Dublin|Berlin|Munich|Francfort|Hambourg|Cologne|Düsseldorf|Stuttgart|Vienne|Salzbourg|Milan|Rome|Turin|Florence|Venise|Naples|Madrid|Barcelone|Valence|Séville|Malaga|Palma de Majorque|Ibiza|Lisbonne|Porto|Bruxelles|Anvers|Amsterdam|Rotterdam|La Haye|Copenhague|Stockholm|Oslo|Helsinki|Varsovie|Prague|Budapest|Athènes|Istanbul|Zagreb|Luxembourg-Ville|Tallinn|Riga|Vilnius|Bucarest|Sofia|Reykjavik|' +
+    'New York|Los Angeles|San Francisco|Miami|Chicago|Boston|Washington|Houston|Austin|Seattle|Las Vegas|Montréal|Toronto|Vancouver|Québec|Mexico|Sao Paulo|Rio de Janeiro|Buenos Aires|Santiago|Bogota|Lima|' +
+    'Dubaï|Abou Dabi|Doha|Riyad|Djeddah|Koweït City|Manama|Mascate|Tel Aviv|Jérusalem|Le Caire|Casablanca|Marrakech|Rabat|Tunis|Alger|Dakar|Abidjan|Lagos|Nairobi|Johannesburg|Le Cap|Maurice|' +
+    'Tokyo|Osaka|Séoul|Pékin|Shanghai|Shenzhen|Hong Kong|Singapour|Bangkok|Hô Chi Minh-Ville|Hanoï|Jakarta|Bali|Kuala Lumpur|Manille|Mumbai|New Delhi|Bangalore|Taipei|Sydney|Melbourne|Auckland').split('|');
+  function norm(x) { return str(x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’']/g, ' ').replace(/[^a-z0-9 -]/g, ' ').replace(/\s+/g, ' ').trim(); }
+  var PIDX = {};
+  PLACES.forEach(function (p) { PIDX[norm(p)] = p; });
+  function lev(a, b) {
+    var m = a.length, n = b.length, d = [], i, j;
+    for (i = 0; i <= m; i++) d[i] = [i];
+    for (j = 1; j <= n; j++) d[0][j] = j;
+    for (i = 1; i <= m; i++) for (j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    return d[m][n];
+  }
+  function closest(v) {
+    var k = norm(v), res = [];
+    Object.keys(PIDX).forEach(function (key) {
+      var dist = lev(k, key), lim = k.length <= 3 ? 1 : k.length <= 8 ? 2 : 3;
+      if (dist <= lim || (k.length >= 3 && key.indexOf(k) === 0)) res.push({ p: PIDX[key], d: dist });
+    });
+    return res.sort(function (a, b) { return a.d - b.d; }).slice(0, 3).map(function (x) { return x.p; });
+  }
+  function cityMsg(text, sugg) {
+    var box = $('#city-msg');
+    box.textContent = '';
+    box.hidden = !text;
+    if (!text) return;
+    box.appendChild(h('span', { text: text }));
+    (sugg || []).forEach(function (p) {
+      box.appendChild(h('button', { type: 'button', class: 'chip', style: 'margin-left:8px;min-height:36px', text: p, onclick: function () { cityMsg(''); addCity(p); } }));
+    });
+  }
+  function addCity(name) {
+    if (S.cities.some(function (c) { return norm(c) === norm(name); })) return;
+    S.cities.push(name);
+    renderCities();
+  }
+  var dl = $('#places');
+  PLACES.forEach(function (p) { dl.appendChild(h('option', { value: p })); });
+  async function checkPlace(v) {
+    var k = norm(v), hit = PIDX[k];
+    if (!hit && v.indexOf(',') >= 0) hit = PIDX[norm(v.split(',')[0])];
+    if (!hit && /\(/.test(v)) hit = PIDX[norm(v.split('(')[0])];
+    if (hit) return { ok: hit };
+    var sug = closest(v);
+    if (sug.length) return { err: '« ' + v + ' » n’est pas un lieu connu. Tu voulais dire :', sugg: sug };
+    var ok = null;
+    try {
+      if (await ensureSample()) {
+        var r = await S.sample.json('Est-ce que « ' + v + ' » est un vrai lieu géographique (ville, commune, région ou pays) où l’on peut travailler ? Réponds uniquement avec ce JSON : {"existe":true|false,"nom":"nom correct en français, avec majuscules"}');
+        ok = (r && r.existe === true && str(r.nom).trim().length >= 2 && str(r.nom).length < 60) ? str(r.nom).trim() : false;
+      }
+    } catch (err) { ok = null; }
+    if (ok) return { ok: ok };
+    if (ok === false) return { err: '« ' + v + ' » ne ressemble pas à un lieu existant. Vérifie l’orthographe.' };
+    return { err: '« ' + v + ' » n’est pas dans ma liste et je n’ai pas pu le vérifier. Essaie une grande ville proche ou le pays.' };
+  }
+  $('#city-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var inp = $('#city-input'), v = inp.value.trim();
+    if (!v) return;
+    cityMsg('Vérification de « ' + v + ' »…');
+    var r = await checkPlace(v);
+    if (r.ok) { inp.value = ''; cityMsg(''); addCity(r.ok); } else cityMsg(r.err, r.sugg);
+  });
+  renderChips($('#taux'), TAUX, S.taux);
+  renderChips($('#modes'), MODES, S.modes);
+  renderCities();
+
+  /* ---------- profile: files ---------- */
+  function fmtSize(n) { return n > 1048576 ? (n / 1048576).toFixed(1) + ' Mo' : Math.max(1, Math.round(n / 1024)) + ' Ko'; }
+  function renderFiles() {
+    var box = $('#files');
+    box.textContent = '';
+    S.files.forEach(function (f, i) {
+      box.appendChild(h('div', { class: 'file' },
+        h('div', { class: 'name' }, h('b', { text: f.name }), h('span', { class: 'hint', text: fmtSize(f.size) })),
+        h('button', { type: 'button', class: 'btn ghost', 'aria-label': 'Retirer ' + f.name, text: 'Retirer', onclick: function () { S.files.splice(i, 1); refreshGo(); } })));
+    });
+  }
+  function refreshGo() {
+    var n = S.files.length;
+    var hasPaste = $('#paste').value.trim().length > 0;
+    $('#go').textContent = (n || hasPaste) ? (n > 1 ? 'Lire mes CV avec Lisa' : 'Lire mon CV avec Lisa') : 'Continuer sans CV';
+    renderFiles();
+    $('#drop').hidden = n >= MAX_FILES;
+    $('#drop-text').textContent = n ? 'Ajoute une autre version de ton CV, par exemple dans une autre langue.' : 'Glisse ton CV ici (PDF, Word .docx ou texte)';
+    $('#pick-label').textContent = n ? 'Ajouter un autre CV' : 'Choisir un fichier';
+  }
+  function addFiles(list) {
+    var msg = $('#profile-msg');
+    msg.hidden = true;
+    var problems = [];
+    Array.prototype.forEach.call(list || [], function (f) {
+      var ext = (f.name.split('.').pop() || '').toLowerCase();
+      if (['pdf', 'docx', 'txt', 'md'].indexOf(ext) < 0) { problems.push(f.name + ' : format non lu (utilise PDF, .docx ou texte).'); return; }
+      if (f.size > 15 * 1048576) { problems.push(f.name + ' : dépasse 15 Mo.'); return; }
+      if (S.files.length >= MAX_FILES) { problems.push(f.name + ' : maximum ' + MAX_FILES + ' CV.'); return; }
+      if (S.files.some(function (x) { return x.name === f.name && x.size === f.size; })) return;
+      S.files.push(f);
+    });
+    refreshGo();
+    if (problems.length) say(msg, problems.join(' '), true);
+  }
+  $('#cv-file').addEventListener('change', function (e) { addFiles(e.target.files); e.target.value = ''; });
+  $('#paste').addEventListener('input', refreshGo);
+  var drop = $('#drop');
+  ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
+
+  /* ---------- reading the files ---------- */
+  function readBuf(f) {
+    return new Promise(function (res, rej) {
+      var r = new FileReader();
+      r.onload = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+      r.readAsArrayBuffer(f);
+    });
+  }
+  function readTxt(f) {
+    return new Promise(function (res, rej) {
+      var r = new FileReader();
+      r.onload = function () { res(String(r.result)); };
+      r.onerror = function () { rej(r.error); };
+      r.readAsText(f);
+    });
+  }
+  async function pdfText(f) {
+    if (!window.pdfjsLib) throw { code: 'no_reader' };
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    var buf = await readBuf(f);
+    var pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    var out = [];
+    for (var p = 1; p <= pdf.numPages; p++) {
+      var page = await pdf.getPage(p);
+      var tc = await page.getTextContent();
+      var line = '', lastY = null;
+      for (var i = 0; i < tc.items.length; i++) {
+        var it = tc.items[i];
+        var y = it.transform ? it.transform[5] : 0;
+        if (lastY !== null && Math.abs(y - lastY) > 3 && line.trim()) { out.push(line.trim()); line = ''; }
+        if (line && !/\s$/.test(line) && !/^\s/.test(it.str)) line += ' ';
+        line += it.str;
+        lastY = y;
+        if (it.hasEOL) { if (line.trim()) out.push(line.trim()); line = ''; lastY = null; }
+      }
+      if (line.trim()) out.push(line.trim());
+    }
+    return out.join('\n');
+  }
+  async function extractText(f) {
+    var ext = f.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') return pdfText(f);
+    if (ext === 'docx') {
+      if (!window.mammoth) throw { code: 'no_reader' };
+      var buf = await readBuf(f);
+      var r = await window.mammoth.extractRawText({ arrayBuffer: buf });
+      return r.value;
+    }
+    return readTxt(f);
+  }
+
+  /* ---------- asking Claude ---------- */
+  function buildPrompt(parts) {
+    var multi = parts.length > 1;
+    var per = Math.floor(30000 / parts.length);
+    var lines = [
+      multi
+        ? 'Tu lis des CV pour une plateforme de recrutement. Les documents ci-dessous sont des versions du même CV, par exemple dans des langues différentes. Fusionne-les en un seul profil et extrais les informations.'
+        : 'Tu lis des CV pour une plateforme de recrutement. Extrais les informations du CV ci-dessous.',
+      'Réponds uniquement avec un objet JSON de cette forme :',
+      '{"identite":{"prenom":"","nom":"","email":"","telephone":""},',
+      '"formations":[{"diplome":"","ecole":"","periode":""}],',
+      '"experiences":[{"poste":"","entreprise":"","periode":"","description":""}],',
+      '"competences":[""]}',
+      '',
+      'Règles :',
+      '- Recopie uniquement ce qui figure dans le CV. N’invente rien. Laisse une chaîne vide quand l’information est absente.'
+    ];
+    if (multi) {
+      lines.push('- Si une formation ou une expérience apparaît dans plusieurs documents, ne la garde qu’une fois, avec les informations les plus complètes.');
+      lines.push('- Rédige le profil en français, en traduisant si nécessaire. Garde tels quels les noms propres, les noms d’entreprises et d’écoles.');
+    } else {
+      lines.push('- Garde la langue d’origine du CV.');
+    }
+    lines.push('- Une entrée par formation et par expérience, de la plus récente à la plus ancienne.');
+    lines.push('- "periode" reprend les dates telles qu’elles sont écrites (par exemple "Mars 2025 - Mars 2026").');
+    lines.push('- "description" regroupe les puces de l’expérience, une par ligne, chacune précédée de "• ".');
+    lines.push('- "competences" liste les compétences professionnelles citées. N’y mets ni les langues parlées ni les centres d’intérêt.');
+    parts.forEach(function (p, i) {
+      lines.push('');
+      lines.push((multi ? 'Document ' + (i + 1) + ' (' + p.name + ') :' : 'CV :'));
+      lines.push('"""');
+      lines.push(p.text.slice(0, per));
+      lines.push('"""');
+    });
+    return lines.join('\n');
+  }
+  function normalize(r) {
+    r = r && typeof r === 'object' ? r : {};
+    var id = r.identite || {};
+    var d = emptyData();
+    d.identite = { prenom: str(id.prenom), nom: str(id.nom), email: str(id.email), telephone: str(id.telephone) };
+    d.formations = (Array.isArray(r.formations) ? r.formations : []).map(function (f) {
+      f = f || {};
+      return { diplome: str(f.diplome), ecole: str(f.ecole), periode: str(f.periode) };
+    });
+    d.experiences = (Array.isArray(r.experiences) ? r.experiences : []).map(function (x) {
+      x = x || {};
+      return { poste: str(x.poste), entreprise: str(x.entreprise), periode: str(x.periode), description: str(x.description) };
+    });
+    d.competences = (Array.isArray(r.competences) ? r.competences : []).map(str).filter(Boolean);
+    return d;
+  }
+  async function ensureSample() {
+    if (S.sample) return S.sample;
+    if (window.claude && typeof window.claude.use === 'function') {
+      try { S.sample = (await window.claude.use('sample')) || null; } catch (e) { S.sample = null; }
+    }
+    return S.sample;
+  }
+  function setStatus(t) { $('#status').textContent = t; }
+  function topLevel() { try { return window.top === window; } catch (e) { return false; } }
+  function noSampleCopy() {
+    return topLevel()
+      ? 'Cette page est ouverte seule, hors de Claude, et l’IA n’y est pas accessible. Ouvre le prototype depuis claude.ai (ton lien claude.ai/artifact/… ou ta galerie d’artifacts) en étant connecté à ton compte.'
+      : 'Claude ne répond pas à cette page. Recharge-la depuis claude.ai, accepte la demande d’autorisation si elle apparaît, puis réessaie.';
+  }
+  function failCopy(e) {
+    var c = e && e.code;
+    if (c === 'no_text') return 'Aucun texte lisible dans ce fichier (PDF scanné ou protégé ?). Colle le texte de ton CV ci-dessous.';
+    if (c === 'no_reader') return 'Le lecteur de fichiers n’a pas pu se charger. Colle le texte de ton CV ci-dessous.';
+    if (c === 'not_granted') return 'L’accès à Claude n’a pas été autorisé pour cette page. Autorise-le puis réessaie.';
+    if (c === 'rate_limited') return 'Trop de demandes ou limite d’usage atteinte. Réessaie dans quelques minutes.';
+    if (c === 'invalid_json') return 'La réponse n’a pas pu être lue. Réessaie.';
+    if (c === 'sampling_disabled' || c === 'no_sample') return noSampleCopy();
+    if (c === 'session_expired') return 'Ta session a expiré. Recharge la page puis réessaie.';
+    return 'La lecture a échoué. Réessaie, colle le texte de ton CV ou continue sans CV pour tout remplir à la main.';
+  }
+  async function analyze() {
+    var pasted = $('#paste').value.trim();
+    var ctl = new AbortController();
+    S.ctl = ctl;
+    show('analyze');
+    $('#analyze-title').textContent = S.files.length > 1 ? 'Lisa lit tes CV' : 'Lisa lit ton CV';
+    setStatus('Lecture du fichier…');
+    try {
+      var parts = [], skipped = [], lastErr = null;
+      for (var i = 0; i < S.files.length; i++) {
+        var f = S.files[i];
+        setStatus('Lecture de ' + f.name + '…');
+        try {
+          var t = (await extractText(f) || '').trim();
+          if (t.length >= 80) parts.push({ name: f.name, text: t });
+          else { skipped.push(f.name); lastErr = { code: 'no_text' }; }
+        } catch (err) { skipped.push(f.name); lastErr = err; }
+        if (ctl.signal.aborted) throw { code: 'cancelled' };
+      }
+      if (pasted.length >= 80) parts.push({ name: 'Texte collé', text: pasted });
+      if (!parts.length) throw lastErr || { code: 'no_text' };
+      if (!(await ensureSample())) throw { code: 'no_sample' };
+      setStatus(parts.length > 1 ? 'Lisa fusionne tes CV en un seul profil… Cela peut prendre une minute.' : 'Lisa analyse ton parcours… Cela peut prendre une minute.');
+      var res = await S.sample.json(buildPrompt(parts), { signal: ctl.signal });
+      S.data = normalize(res);
+      S.analyzed = true;
+      S.sources = parts.map(function (p) { return p.name; });
+      S.skipped = skipped;
+      fillVerify();
+      show('verify');
+    } catch (e) {
+      show('profile');
+      if (e && e.code === 'cancelled') return;
+      if (e && (e.code === 'no_text' || e.code === 'no_reader')) $('#paste-box').open = true;
+      say($('#profile-msg'), failCopy(e), true);
+    }
+  }
+  $('#stop').addEventListener('click', function () { if (S.ctl) S.ctl.abort(); });
+  $('#go').addEventListener('click', function () {
+    if (S.files.length || $('#paste').value.trim()) { analyze(); return; }
+    S.data = emptyData();
+    S.analyzed = false;
+    S.sources = []; S.skipped = [];
+    fillVerify();
+    show('verify');
+  });
+
+  /* ---------- verification ---------- */
+  function field(label, val, onin, opts) {
+    opts = opts || {};
+    var id = nid('f');
+    var inp = h('input', { id: id, type: opts.type || 'text', class: 'inp' + (opts.strong ? ' strong' : ''), oninput: function (e) { onin(e.target.value); } });
+    inp.value = val;
+    return h('div', { class: 'fld' }, h('label', { for: id, text: label }), inp);
+  }
+  function renderIdent() {
+    var box = $('#ident');
+    var d = S.data.identite;
+    box.textContent = '';
+    box.appendChild(field('Prénom', d.prenom, function (v) { d.prenom = v; }));
+    box.appendChild(field('Nom', d.nom, function (v) { d.nom = v; }));
+    box.appendChild(field('E-mail', d.email, function (v) { d.email = v; }, { type: 'email' }));
+    box.appendChild(field('Téléphone', d.telephone, function (v) { d.telephone = v; }, { type: 'tel' }));
+  }
+  function renderFormations() {
+    var box = $('#formations');
+    box.textContent = '';
+    if (!S.data.formations.length) box.appendChild(h('p', { class: 'empty', text: 'Aucune formation pour le moment.' }));
+    S.data.formations.forEach(function (f, i) {
+      box.appendChild(h('div', { class: 'item' },
+        field('Diplôme', f.diplome, function (v) { f.diplome = v; }, { strong: true }),
+        h('div', { class: 'two' },
+          field('École ou université', f.ecole, function (v) { f.ecole = v; }),
+          field('Période', f.periode, function (v) { f.periode = v; })),
+        h('button', { type: 'button', class: 'link', text: 'Retirer cette formation', onclick: function () { S.data.formations.splice(i, 1); renderFormations(); } })));
+    });
+  }
+  function renderExps() {
+    var box = $('#exps');
+    box.textContent = '';
+    if (!S.data.experiences.length) box.appendChild(h('p', { class: 'empty', text: 'Aucune expérience pour le moment.' }));
+    S.data.experiences.forEach(function (x, i) {
+      var tid = nid('t');
+      var ta = h('textarea', { id: tid, class: 'inp area', rows: '4', oninput: function (e) { x.description = e.target.value; } });
+      ta.value = x.description;
+      box.appendChild(h('div', { class: 'item' },
+        h('div', { class: 'three' },
+          field('Poste', x.poste, function (v) { x.poste = v; }, { strong: true }),
+          field('Entreprise', x.entreprise, function (v) { x.entreprise = v; }),
+          field('Période', x.periode, function (v) { x.periode = v; })),
+        h('div', { class: 'fld' }, h('label', { for: tid, text: 'Ce que tu y as fait' }), ta),
+        h('button', { type: 'button', class: 'link', text: 'Retirer cette expérience', onclick: function () { S.data.experiences.splice(i, 1); renderExps(); } })));
+    });
+  }
+  function renderSkills() {
+    var box = $('#skills');
+    box.textContent = '';
+    if (!S.data.competences.length) box.appendChild(h('p', { class: 'empty', text: 'Aucune compétence pour le moment.' }));
+    S.data.competences.forEach(function (c, i) {
+      box.appendChild(h('button', {
+        type: 'button', class: 'chip on', 'aria-label': 'Retirer ' + c, text: c + ' ×',
+        onclick: function () { S.data.competences.splice(i, 1); renderSkills(); }
+      }));
+    });
+  }
+  function fillVerify() {
+    renderIdent(); renderFormations(); renderExps(); renderSkills();
+    var m = $('#verify-msg');
+    if (S.analyzed) {
+      var n = S.sources.length;
+      var text = n > 1
+        ? 'Lisa a fusionné ' + n + ' CV (' + S.sources.join(', ') + ') en un seul profil, rédigé en français. Relis-le avec attention, une erreur de lecture est possible.'
+        : 'Lisa a rempli ces champs à partir de ' + S.sources[0] + '. Relis-les avec attention, une erreur de lecture est possible.';
+      if (S.skipped.length) text += ' Non lu : ' + S.skipped.join(', ') + '.';
+      say(m, text);
+    } else {
+      say(m, 'Aucun CV lu. Remplis ce que tu veux, tu pourras compléter plus tard.');
+    }
+  }
+  $('#add-formation').addEventListener('click', function () { S.data.formations.push({ diplome: '', ecole: '', periode: '' }); renderFormations(); });
+  $('#add-exp').addEventListener('click', function () { S.data.experiences.push({ poste: '', entreprise: '', periode: '', description: '' }); renderExps(); });
+  $('#skill-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = $('#skill-input').value.trim();
+    $('#skill-input').value = '';
+    if (!v || S.data.competences.some(function (c) { return c.toLowerCase() === v.toLowerCase(); })) return;
+    S.data.competences.push(v);
+    renderSkills();
+  });
+  $('#back').addEventListener('click', function () { show('profile'); });
+
+  /* ---------- done ---------- */
+  function keysOn(o) { return Object.keys(o).filter(function (k) { return o[k]; }); }
+  function section(title, children) {
+    var card = h('div', { class: 'card' }, h('h2', { text: title }));
+    children.forEach(function (c) { card.appendChild(c); });
+    return card;
+  }
+  function renderRecap() {
+    var d = S.data, id = d.identite;
+    var box = $('#recap');
+    box.textContent = '';
+    var name = (id.prenom + ' ' + id.nom).trim();
+    var contact = [id.email, id.telephone].filter(Boolean).join(' · ');
+    var search = [];
+    if (S.cities.length) search.push('Lieux : ' + S.cities.join(', '));
+    if (keysOn(S.taux).length) search.push('Taux : ' + keysOn(S.taux).join(', '));
+    if (keysOn(S.modes).length) search.push('Mode : ' + keysOn(S.modes).join(', '));
+    var head = h('div', { class: 'card' });
+    head.appendChild(h('p', { class: 'who', text: name || 'Ton profil' }));
+    if (contact) head.appendChild(h('p', { class: 'meta', text: contact }));
+    if (search.length) head.appendChild(h('p', { class: 'meta', text: search.join(' · ') }));
+    if (S.sources.length > 1) head.appendChild(h('p', { class: 'meta', text: 'Fusion de ' + S.sources.length + ' CV : ' + S.sources.join(', ') }));
+    box.appendChild(head);
+    if (d.experiences.length) {
+      box.appendChild(section('Expériences', d.experiences.map(function (x) {
+        var item = h('div', { class: 'item' }, h('p', { class: 'role', text: [x.poste, x.entreprise].filter(Boolean).join(' · ') }));
+        if (x.periode) item.appendChild(h('p', { class: 'when', text: x.periode }));
+        if (x.description) item.appendChild(h('p', { class: 'desc', text: x.description }));
+        return item;
+      })));
+    }
+    if (d.formations.length) {
+      box.appendChild(section('Formation', d.formations.map(function (f) {
+        var item = h('div', { class: 'item' }, h('p', { class: 'role', text: f.diplome }));
+        var sub = [f.ecole, f.periode].filter(Boolean).join(' · ');
+        if (sub) item.appendChild(h('p', { class: 'when', text: sub }));
+        return item;
+      })));
+    }
+    if (d.competences.length) {
+      var tags = h('div', { class: 'chips' });
+      d.competences.forEach(function (c) { tags.appendChild(h('span', { class: 'tag', text: c })); });
+      box.appendChild(section('Compétences', [tags]));
+    }
+  }
+  $('#confirm').addEventListener('click', function () { makeQuestions(false); });
+  $('#generic').addEventListener('click', function () { makeQuestions(true); });
+  $('#copy').addEventListener('click', function () {
+    var ta = $('#json');
+    var note = $('#copy-note');
+    var fallback = function () { ta.focus(); ta.select(); note.textContent = 'Sélectionné. Copie avec Ctrl+C ou Cmd+C.'; };
+    try {
+      navigator.clipboard.writeText(ta.value).then(function () { note.textContent = 'Données copiées.'; }, fallback);
+    } catch (e) { fallback(); }
+  });
+  $('#restart').addEventListener('click', function () { if (SAVED) showDash(); else show('profile'); });
+
+
+  /* ---------- final recap with the interview ---------- */
+  function buildOutput() {
+    var d = S.data;
+    return {
+      profil: d.identite,
+      formations: d.formations,
+      experiences: d.experiences,
+      competences: d.competences,
+      recherche: { lieux: S.cities.slice(), tauxDeTravail: keysOn(S.taux), modeDeTravail: keysOn(S.modes) },
+      entretien: S.q.map(function (q, i) { return { type: q.type, style: q.style || '', traits: q.traits, question: q.texte, reponse: S.answers[i] || '' }; })
+    };
+  }
+  function finalize(noSave) {
+    $('#json').value = JSON.stringify(buildOutput(), null, 2);
+    $('#copy-note').textContent = '';
+    renderRecap();
+    var box = $('#recap');
+    if (S.q.length) {
+      box.appendChild(section('Ton entretien avec Lisa', S.q.map(function (q, i) {
+        var ans = S.answers[i] || '';
+        return h('div', { class: 'qa' }, h('p', { class: 'q', text: q.texte }), h('p', { class: 'a' + (ans ? '' : ' none'), text: ans || 'Question passée' }));
+      })));
+    }
+    if (!noSave) analyzeInterview();
+  }
+
+  /* ---------- Lisa, en orbe ---------- */
+  var orbState = 'idle', targetE = 0, E = 0, eTimers = [];
+  var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var K = { scale: 1, wob: 0.02, glow: 0.5, dim: 1, ring: 0, arcs: 0 };
+  var ripples = [], lastRip = 0, T0 = performance.now(), prevT = T0;
+  var orbCanvases = [$('#orb-a'), $('#orb-b'), $('#orb-w')];
+  function lerp(a, b, f) { return a + (b - a) * f; }
+  function blobPts(R, t, phase, amp) {
+    var pts = [];
+    for (var i = 0; i < 96; i++) {
+      var a = i / 96 * Math.PI * 2;
+      var d = Math.sin(3 * a + t * 1.1 + phase) * 0.5 + Math.sin(5 * a - t * 1.7 + phase * 2) * 0.3 + Math.sin(2 * a + t * 0.6 - phase) * 0.45;
+      var r = R * (1 + amp * d);
+      pts.push([Math.cos(a) * r, Math.sin(a) * r]);
+    }
+    return pts;
+  }
+  function drawOrb(cv, W, Hh, t, dt, now) {
+    var ctx = cv.getContext('2d');
+    var cx = W / 2, cy = Hh / 2, R = Math.min(W, Hh) * 0.22 * K.scale;
+    ctx.clearRect(0, 0, W, Hh);
+    var g = ctx.createRadialGradient(cx, cy, R * 0.6, cx, cy, R * 2.6);
+    g.addColorStop(0, 'rgba(79,181,172,' + (0.38 * K.glow * K.dim) + ')');
+    g.addColorStop(0.5, 'rgba(31,122,116,' + (0.14 * K.glow * K.dim) + ')');
+    g.addColorStop(1, 'rgba(31,122,116,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh);
+    ripples.forEach(function (p) {
+      ctx.beginPath(); ctx.arc(cx, cy, p.r * (R / 1), 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(127,224,214,' + p.a + ')'; ctx.lineWidth = 2; ctx.stroke();
+    });
+    if (K.ring > 0.02) {
+      var rr = R * (1.35 + 0.06 * Math.sin(t * 2.2));
+      ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(127,224,214,' + (0.4 * K.ring) + ')'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, rr * 1.14, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(127,224,214,' + (0.16 * K.ring) + ')'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    if (K.arcs > 0.02) {
+      for (var i = 0; i < 3; i++) {
+        var st = t * 1.7 + i * 2.094;
+        ctx.beginPath(); ctx.arc(cx, cy, R * 1.45, st, st + 0.9);
+        ctx.strokeStyle = 'rgba(127,224,214,' + (0.75 * K.arcs) + ')'; ctx.lineWidth = 3.5; ctx.lineCap = 'round'; ctx.stroke();
+      }
+    }
+    ctx.save(); ctx.translate(cx, cy);
+    [[0, 0.95], [2.1, 0.22], [4.2, 0.16]].forEach(function (L, idx) {
+      ctx.globalCompositeOperation = idx === 0 ? 'source-over' : 'lighter';
+      var pts = blobPts(R, t * (1 + idx * 0.25), L[0], K.wob);
+      var gr = ctx.createRadialGradient(-R * 0.3, -R * 0.35, R * 0.1, 0, 0, R * 1.15);
+      gr.addColorStop(0, 'rgba(120,214,205,' + (L[1] * K.dim) + ')');
+      gr.addColorStop(0.55, 'rgba(31,128,120,' + (L[1] * K.dim) + ')');
+      gr.addColorStop(1, 'rgba(14,72,68,' + (L[1] * K.dim) + ')');
+      ctx.fillStyle = gr;
+      ctx.beginPath();
+      pts.forEach(function (p, j) { if (j === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); });
+      ctx.closePath(); ctx.fill();
+    });
+    ctx.globalCompositeOperation = 'source-over';
+    var hl = ctx.createRadialGradient(-R * 0.35, -R * 0.4, 0, -R * 0.35, -R * 0.4, R * 0.55);
+    hl.addColorStop(0, 'rgba(235,255,252,' + (0.3 * K.dim) + ')'); hl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hl; ctx.beginPath(); ctx.arc(-R * 0.35, -R * 0.4, R * 0.55, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    var ang = t * (orbState === 'thinking' ? 1.2 : 0.5), sr = R * (1.7 + 0.12 * E);
+    ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * sr, cy + Math.sin(ang) * sr * 0.55, 4 + 3 * E, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(240,144,106,' + (0.65 + 0.3 * E) + ')'; ctx.fill();
+  }
+  function orbFrame(now) {
+    var dt = Math.min(0.05, (now - prevT) / 1000); prevT = now;
+    var t = (now - T0) / 1000;
+    var live = orbCanvases.filter(function (c) { return c && c.offsetParent !== null; });
+    if (live.length) {
+      E += (targetE - E) * Math.min(1, dt * 14);
+      if (orbState !== 'speaking') { targetE = 0; E *= 0.9; }
+      var goal;
+      if (orbState === 'speaking') goal = { scale: 1 + 0.1 * E, wob: 0.035 + 0.13 * E, glow: 0.55 + 0.45 * E, dim: 1, ring: 0, arcs: 0 };
+      else if (orbState === 'listening') goal = { scale: 0.93 + 0.012 * Math.sin(t * 2.2), wob: 0.03, glow: 0.45, dim: 0.95, ring: 1, arcs: 0 };
+      else if (orbState === 'thinking') goal = { scale: 0.88, wob: 0.025, glow: 0.3, dim: 0.7, ring: 0, arcs: 1 };
+      else goal = { scale: 1 + 0.035 * Math.sin(t * 1.3), wob: 0.025 + 0.01 * Math.sin(t * 0.7), glow: 0.45 + 0.1 * Math.sin(t * 1.3), dim: 1, ring: 0, arcs: 0 };
+      var f = Math.min(1, dt * (orbState === 'speaking' ? 14 : 5));
+      for (var key in goal) K[key] = lerp(K[key], goal[key], f);
+      if (reduceMotion) K.wob = 0.015;
+      if (orbState === 'speaking' && E > 0.7 && now - lastRip > 280 && !reduceMotion) { ripples.push({ r: 1.05, a: 0.5 }); lastRip = now; }
+      ripples = ripples.filter(function (p) { p.r += dt * 1.5; p.a -= dt * 0.55; return p.a > 0; });
+      live.forEach(function (cv) {
+        var r = cv.getBoundingClientRect();
+        var dpr = Math.min(2, window.devicePixelRatio || 1);
+        var W = Math.max(1, Math.round(r.width)), Hh = Math.max(1, Math.round(r.height));
+        if (cv.width !== W * dpr || cv.height !== Hh * dpr) { cv.width = W * dpr; cv.height = Hh * dpr; }
+        cv.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawOrb(cv, W, Hh, t, dt, now);
+      });
+    }
+    requestAnimationFrame(orbFrame);
+  }
+  requestAnimationFrame(orbFrame);
+  var STATE_LABEL = { idle: 'Lisa attend', speaking: 'Lisa parle', listening: 'Lisa t’écoute', thinking: 'Lisa réfléchit' };
+  function setOrb(st) {
+    orbState = st;
+    $('#iv-state').textContent = STATE_LABEL[st];
+  }
+
+  /* ---------- Lisa's voice ---------- */
+  var synth = window.speechSynthesis || null, voices = [], voiceOn = true, speakId = 0, simTimer = null;
+  var PREFER = /(am[ée]lie|audrey|aur[ée]lie|marie|c[ée]line|julie|hortense|denise|eloise|vivienne|google fran)/i;
+  function loadVoices() {
+    if (!synth) return;
+    voices = synth.getVoices().filter(function (v) { return /^fr/i.test(v.lang); });
+    var sel = $('#voice'), keep = sel.value;
+    sel.textContent = '';
+    if (!voices.length) {
+      sel.appendChild(h('option', { value: '', text: 'Aucune voix française trouvée' }));
+      sel.disabled = true;
+      $('#voice-note').textContent = 'Aucune voix française sur cet appareil : Lisa parle en silence, seul l’orbe réagit.';
+      return;
+    }
+    sel.disabled = false;
+    var pick = -1, marie = -1;
+    voices.forEach(function (v, i) {
+      sel.appendChild(h('option', { value: String(i), text: v.name + ' (' + v.lang + ')' }));
+      if (marie < 0 && /marie/i.test(v.name)) marie = i;
+      if (pick < 0 && PREFER.test(v.name)) pick = i;
+    });
+    if (marie >= 0) pick = marie;
+    sel.value = keep !== '' && voices[+keep] ? keep : String(pick >= 0 ? pick : 0);
+  }
+  if (synth) {
+    loadVoices();
+    if (typeof synth.addEventListener === 'function') synth.addEventListener('voiceschanged', loadVoices);
+  } else {
+    $('#voice').appendChild(h('option', { value: '', text: 'Voix indisponible dans cette vue' }));
+    $('#voice').disabled = true;
+    $('#voice-note').textContent = 'La synthèse vocale n’est pas disponible dans cette vue : Lisa parle en silence.';
+  }
+  $('#voice-toggle').addEventListener('click', function () {
+    voiceOn = !voiceOn;
+    this.setAttribute('aria-pressed', String(voiceOn));
+    this.textContent = voiceOn ? 'Voix activée' : 'Voix coupée';
+    if (!voiceOn) stopSpeak();
+  });
+  function clearE() { eTimers.forEach(clearTimeout); eTimers = []; }
+  function scheduleEnergy(text, from, msPerChar) {
+    clearE();
+    var t = 0;
+    function at(ms, v) { eTimers.push(setTimeout(function () { targetE = v; }, ms)); }
+    for (var i = from; i < text.length; i++) {
+      var ch = text[i].toLowerCase(), v, d = msPerChar;
+      if (/[.,;:!?…]/.test(ch)) { v = 0.04; d = 260; }
+      else if (/\s/.test(ch)) { v = 0.14; d = msPerChar * 0.4; }
+      else if ('aàâ'.indexOf(ch) >= 0) { v = 0.9 + Math.random() * 0.1; d = msPerChar * 1.35; }
+      else if ('oôuùûeéèêiîy'.indexOf(ch) >= 0) { v = 0.55 + Math.random() * 0.25; d = msPerChar * 1.1; }
+      else { v = 0.22 + Math.random() * 0.12; }
+      at(t, v);
+      t += d;
+    }
+    at(t, 0);
+  }
+  function endSpeak() {
+    if (simTimer) { clearTimeout(simTimer); simTimer = null; }
+    clearE(); targetE = 0;
+    if (orbState === 'speaking') setOrb(listening ? 'listening' : 'idle');
+  }
+  function stopSpeak() {
+    speakId += 1;
+    if (synth) { try { synth.cancel(); } catch (e) {} }
+    endSpeak();
+  }
+  function speak(text) {
+    stopSpeak();
+    if (!voiceOn) { setOrb('idle'); return; }
+    var id = speakId;
+    var v = voices.length ? voices[+$('#voice').value] : null;
+    if (!synth || !v) {
+      setOrb('speaking');
+      scheduleEnergy(text, 0, 72);
+      simTimer = setTimeout(function () { if (id === speakId) endSpeak(); }, Math.max(1500, text.length * 62));
+      return;
+    }
+    var u = new SpeechSynthesisUtterance(text);
+    u.voice = v; u.lang = v.lang; u.rate = 1; u.pitch = 1.05;
+    u.onstart = function () { if (id !== speakId) return; setOrb('speaking'); scheduleEnergy(text, 0, 72); };
+    u.onboundary = function (e) { if (id !== speakId) return; if (e.name && e.name !== 'word') return; scheduleEnergy(text, e.charIndex, 72); };
+    u.onend = function () { if (id === speakId) endSpeak(); };
+    u.onerror = function () { if (id === speakId) endSpeak(); };
+    synth.speak(u);
+  }
+
+  /* ---------- dictation ---------- */
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var rec = null, listening = false, wantMic = false, micBase = '', micFinal = '', restarts = 0;
+  function micUi() {
+    $('#mic').setAttribute('aria-pressed', String(listening));
+    $('#mic-label').textContent = listening ? 'Arrêter la dictée' : 'Répondre à voix haute';
+  }
+  function stopMic() {
+    wantMic = false;
+    if (rec) { try { rec.onend = null; rec.stop(); } catch (e) {} rec = null; }
+    if (listening) { listening = false; micUi(); if (orbState === 'listening') setOrb('idle'); }
+    $('#mic-note').textContent = $('#mic-note').dataset.err || '';
+  }
+  function startMic() {
+    var note = $('#mic-note');
+    note.dataset.err = '';
+    if (!SR) { note.dataset.err = 'La dictée n’est pas disponible dans ce navigateur (essaie Chrome, Edge ou Safari). Tu peux écrire ta réponse.'; note.textContent = note.dataset.err; return; }
+    stopSpeak();
+    micBase = $('#iv-answer').value.trim();
+    micFinal = '';
+    restarts = 0;
+    wantMic = true;
+    boot();
+    function boot() {
+      var r = new SR();
+      rec = r;
+      r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true;
+      r.onresult = function (e) {
+        var interim = '';
+        for (var i = e.resultIndex; i < e.results.length; i++) {
+          var res = e.results[i];
+          if (res.isFinal) micFinal += res[0].transcript.trim() + ' ';
+          else interim += res[0].transcript;
+        }
+        $('#iv-answer').value = ((micBase ? micBase + ' ' : '') + (micFinal + interim).trim()).trim();
+      };
+      r.onerror = function (e) {
+        var c = e && e.error;
+        if (c === 'no-speech' || c === 'aborted') return;
+        wantMic = false;
+        if (c === 'not-allowed' || c === 'service-not-allowed') note.dataset.err = 'Le micro n’est pas autorisé dans cette vue. Écris ta réponse, ou autorise le micro dans ton navigateur puis réessaie.';
+        else if (c === 'audio-capture') note.dataset.err = 'Aucun micro détecté. Tu peux écrire ta réponse.';
+        else if (c === 'network') note.dataset.err = 'La dictée a besoin d’une connexion internet. Tu peux écrire ta réponse.';
+        else note.dataset.err = 'La dictée a rencontré un problème. Tu peux écrire ta réponse.';
+      };
+      r.onend = function () {
+        if (wantMic && restarts < 30) { restarts += 1; try { boot(); } catch (x) { stopMic(); } }
+        else stopMic();
+      };
+      try { r.start(); } catch (x) { stopMic(); return; }
+      if (!listening) { listening = true; micUi(); setOrb('listening'); note.textContent = 'Je t’écoute… parle naturellement, puis clique sur « Arrêter la dictée ».'; }
+    }
+  }
+  $('#mic').addEventListener('click', function () { if (listening) stopMic(); else startMic(); });
+  $('#iv-answer').addEventListener('input', function (e) { if (listening && e.isTrusted) stopMic(); });
+
+  /* ---------- the questions ---------- */
+  var TRAITS = ['communication', 'esprit_equipe', 'empathie', 'assertivite', 'gestion_conflits', 'rigueur', 'autonomie', 'gestion_priorites', 'fiabilite', 'orientation_resultats', 'gestion_stress', 'resilience', 'adaptabilite', 'curiosite', 'tolerance_ambiguite', 'leadership', 'capacite_motivation', 'prise_decision', 'delegation', 'integrite', 'esprit_analyse', 'creativite', 'engagement', 'humilite'];
+  var QTYPES = ['cv', 'generique', 'situation'];
+  var NQ = 18, MAXREL = 12, relCount = 0, busy = false, t0 = 0;
+  var INTRO = [
+    { type: 'intro', style: 'intro_qui', traits: ['communication', 'humilite'], texte: 'Bonjour, je suis Lisa. On va prendre le temps de faire connaissance. Pour commencer, dis-moi simplement qui tu es : ton parcours, ce qui te définit, ce dont tu es fier.' },
+    { type: 'intro', style: 'intro_recherche', traits: ['capacite_motivation', 'engagement'], texte: 'Maintenant, dis-moi ce que tu recherches : quel type de poste, dans quel environnement, ce qui te motiverait vraiment, et aussi ce que tu ne veux plus ou surtout pas.' }
+  ];
+  var FALLBACK = [
+    { type: 'situation', traits: ['adaptabilite', 'gestion_stress'], texte: 'Imagine que tu organises un week-end avec cinq amis et que, la veille, deux annulent et le logement n’est plus disponible. Que fais-tu ?' },
+    { type: 'generique', traits: ['prise_decision', 'autonomie'], texte: 'Raconte-moi une décision importante que tu as dû prendre seul, sans pouvoir consulter personne. Que s’est-il passé, et qu’as-tu fait ?' },
+    { type: 'situation', traits: ['esprit_equipe', 'gestion_priorites'], texte: 'Un collègue te demande de l’aide pour une tâche qui n’est pas dans tes responsabilités, alors que tu es déjà très chargé. Comment réagis-tu ?' },
+    { type: 'generique', style: 'outils', traits: ['curiosite', 'adaptabilite'], texte: 'Quels logiciels et outils utilises-tu au quotidien dans ton travail ? Lesquels maîtrises-tu vraiment bien, et lesquels aimerais-tu apprendre ?' },
+    { type: 'generique', traits: ['leadership', 'esprit_equipe'], texte: 'Quand tu travailles en équipe, quel rôle prends-tu naturellement ? Et dans quelle situation as-tu eu du mal à le tenir ?' },
+    { type: 'situation', traits: ['integrite', 'rigueur'], texte: 'Juste avant de rendre un travail, tu découvres une erreur que personne d’autre n’a remarquée. Que fais-tu ?' },
+    { type: 'generique', traits: ['gestion_conflits', 'assertivite'], texte: 'Parle-moi d’un moment où tu as été en désaccord avec quelqu’un. Comment l’as-tu géré ?' },
+    { type: 'generique', traits: ['engagement', 'capacite_motivation'], texte: 'Qu’est-ce qui te donne vraiment de l’énergie dans une journée de travail, et qu’est-ce qui t’en enlève ?' },
+    { type: 'situation', traits: ['gestion_priorites', 'gestion_stress'], texte: 'Tu as trois urgences en même temps et un seul après-midi pour les traiter. Comment décides-tu par laquelle commencer ?' },
+    { type: 'generique', traits: ['resilience', 'adaptabilite'], texte: 'Raconte-moi un échec ou une déception professionnelle. Comment l’as-tu vécu et qu’en as-tu retiré ?' },
+    { type: 'situation', traits: ['empathie', 'communication'], texte: 'Un collègue semble à bout et n’en parle pas. Comment réagis-tu ?' },
+    { type: 'generique', traits: ['autonomie', 'rigueur'], texte: 'Décris-moi ta manière d’organiser ta semaine de travail. Qu’est-ce qui ne bouge jamais, et qu’est-ce que tu laisses ouvert ?' },
+    { type: 'situation', traits: ['assertivite', 'integrite'], texte: 'Ton responsable te demande une chose que tu penses être une mauvaise idée. Que fais-tu ?' },
+    { type: 'generique', traits: ['creativite', 'esprit_analyse'], texte: 'Raconte-moi une fois où tu as trouvé une manière différente de faire quelque chose. D’où est venue l’idée ?' },
+    { type: 'situation', traits: ['delegation', 'leadership'], texte: 'Tu coordonnes un projet et un membre de l’équipe n’avance pas. Comment t’y prends-tu ?' },
+    { type: 'generique', traits: ['capacite_motivation', 'empathie'], texte: 'Comment motives-tu les gens autour de toi quand ça devient difficile ? Donne-moi un exemple vécu.' },
+    { type: 'situation', traits: ['tolerance_ambiguite', 'prise_decision'], texte: 'On te confie une mission dont le cadre n’est pas clair et personne n’est disponible pour t’éclairer. Comment démarres-tu ?' },
+    { type: 'generique', traits: ['fiabilite', 'engagement'], texte: 'Quel engagement as-tu tenu alors que c’était difficile, et pourquoi ?' },
+    { type: 'generique', traits: ['orientation_resultats', 'humilite'], texte: 'Pour finir sur une note positive : de quel projet ou de quelle réussite es-tu le plus fier, et pourquoi ?' }
+  ];
+  function hasProfile() { var d = S.data; return d.experiences.length > 0 || d.competences.length > 0 || d.formations.length > 0; }
+  function buildQuestionsPrompt() {
+    var d = S.data;
+    var prof = JSON.stringify({ formations: d.formations, experiences: d.experiences, competences: d.competences });
+    var withCv = hasProfile();
+    return [
+      'Tu prépares un entretien oral d’environ 40 minutes mené par Lisa, une interlocutrice IA chaleureuse, pour une plateforme de recrutement. Le candidat ne passe qu’UN SEUL entretien, réutilisable pour toutes les entreprises : ne fais JAMAIS référence à une offre ou à un poste précis, et ne parle jamais de salaire.',
+      '',
+      'Profil du candidat, extrait de son CV et vérifié par lui :',
+      prof,
+      '',
+      'Génère exactement ' + NQ + ' questions, en français, avec tutoiement et un ton chaleureux. Elles seront dites à voix haute : une seule question à la fois, une à trois phrases courtes, sans liste ni question à tiroirs. Chaque réponse doit pouvoir durer une à deux minutes. Les questions doivent être toutes différentes, sans redite.',
+      '',
+      'Répartition :',
+      withCv
+        ? '- 8 questions de type "cv", toutes ancrées dans une expérience réelle du profil : cite le poste, l’entreprise ou une mission précise, en t’appuyant surtout sur les descriptions de missions, qui reflètent les compétences métier. Ne pose PAS six fois la même question de gestion de situation. Varie les angles, et couvre chacun d’eux au moins une fois, sur des expériences différentes. Ajoute 3 questions de style "metier", pour vérifier la vraie expérience dans son domaine principal : demande de décrire concrètement comment il fait son travail (une méthode, une démarche pas à pas, un cas réel avec chiffres et résultats), les erreurs classiques à éviter, ou ce qui distingue un débutant d’un expert. Ce ne sont pas des questions de culture générale :\n  • "recit" : demande de raconter l’expérience (en quoi consistait la mission, une journée type, comment ça s’est passé de l’intérieur, de quoi il est le plus fier). Exemple : « Raconte-moi ton passage chez … : en quoi consistait concrètement ton rôle ? »\n  • "vecu" : demande comment il l’a vécue (ce qui lui a plu, ce qui lui a pesé, l’ambiance, la relation avec l’équipe et la hiérarchie, ce que cette période lui a appris sur lui). Exemple : « Comment as-tu vécu cette période ? Qu’est-ce qui t’a plu, et qu’est-ce qui t’a pesé ? »\n  • "parcours" : demande le sens d’un choix (pourquoi il a pris ce poste, pourquoi il a changé, ce qu’il cherchait). Exemple : « Qu’est-ce qui t’a poussé à rejoindre … ? »\n  • "comportement" : demande de raconter une situation précise de cette mission (une difficulté, une décision, un désaccord) et ce qu’il a fait. À ne mettre qu’une ou deux fois.'
+        : '- Le profil est vide : mets 0 question de type "cv" et ajoute 8 questions de type "generique".',
+      '- 1 question de style "outils" (type "' + (withCv ? 'cv' : 'generique') + '"), placée en troisième ou quatrième position : demande quels logiciels, outils et systèmes il utilise au quotidien dans son métier (bureautique, métier, CRM, ERP, outils de gestion de projet, langages ou autres), lesquels il maîtrise le mieux, et lesquels il apprend ou aimerait apprendre.' + (withCv ? ' Appuie-toi sur les outils déjà cités dans son CV pour les relancer, sans les réciter tous.' : '') + ' Trait possible : curiosite, adaptabilite, autonomie.',
+      '- 5 questions de type "generique" : personnalité et manière de travailler, sans lien avec le CV.',
+      '- 4 questions de type "situation" : cas pratiques de la vie de tous les jours, sans lien avec le passé professionnel (par exemple un imprévu, un désaccord, un choix à faire vite).',
+      '',
+      'Chaque question mesure un ou deux traits, choisis UNIQUEMENT dans cette liste fermée : ' + TRAITS.join(', ') + '. Répartis les traits sur des familles variées et n’utilise pas le même trait plus de deux fois.',
+      'Les deux toutes premières questions de l’entretien (« qui es-tu ? » puis « que recherches-tu ? ») sont déjà posées par Lisa : ne les répète pas et ne redemande pas de se présenter. Ordre : commence par un récit sur l’expérience la plus récente, alterne les types, et termine par une question positive.',
+      '',
+      'Réponds uniquement avec ce JSON :',
+      '{"questions":[{"type":"cv|generique|situation","style":"recit|vecu|parcours|comportement|metier|outils|generique|situation","traits":["trait"],"texte":"…"}]}'
+    ].join('\n');
+  }
+  function normalizeQuestions(r) {
+    var arr = r && Array.isArray(r.questions) ? r.questions : (Array.isArray(r) ? r : []);
+    var out = [];
+    arr.forEach(function (q) {
+      if (!q || typeof q !== 'object') return;
+      var t = str(q.texte || q.question).trim();
+      if (t.length < 15) return;
+      var ty = QTYPES.indexOf(q.type) >= 0 ? q.type : 'generique';
+      var tr = (Array.isArray(q.traits) ? q.traits : []).map(str).filter(function (x) { return TRAITS.indexOf(x) >= 0; }).slice(0, 2);
+      out.push({ type: ty, style: str(q.style), traits: tr, texte: t });
+    });
+    return out.slice(0, NQ);
+  }
+  async function makeQuestions(generic) {
+    $('#generic').hidden = true;
+    if (generic) { S.q = INTRO.concat(FALLBACK.slice(0, NQ)); startInterview(); return; }
+    var ctl = new AbortController();
+    S.ctl = ctl;
+    show('analyze', 3);
+    setOrb('thinking');
+    $('#analyze-title').textContent = 'Lisa prépare ton entretien';
+    setStatus('Lisa lit ton profil et choisit ses questions… Cela peut prendre une minute.');
+    try {
+      if (!(await ensureSample())) throw { code: 'no_sample' };
+      var res = await S.sample.json(buildQuestionsPrompt(), { signal: ctl.signal });
+      var qs = normalizeQuestions(res);
+      if (qs.length < 5) throw { code: 'invalid_json' };
+      S.q = INTRO.concat(qs);
+      startInterview();
+    } catch (e) {
+      show('verify');
+      if (e && e.code === 'cancelled') return;
+      if (ctl.signal.aborted) return;
+      $('#generic').hidden = false;
+      say($('#verify-msg'), 'Lisa n’a pas pu préparer tes questions. ' + failCopy(e).replace(/ Retire les fichiers.*$/, '') + ' Tu peux réessayer, ou lancer l’entretien avec des questions génériques.', true);
+    }
+  }
+
+  /* ---------- the interview ---------- */
+  function startInterview() {
+    S.i = 0; S.answers = []; S.locked = false; relCount = 0; busy = false; t0 = Date.now();
+    show('interview', 3);
+    renderQuestion();
+  }
+  function renderQuestion() {
+    var q = S.q[S.i];
+    stopMic();
+    $('#mic-note').dataset.err = ''; $('#mic-note').textContent = '';
+    $('#iv-q').textContent = q.texte;
+    $('#iv-count').textContent = 'Question ' + (S.i + 1) + ' · ' + Math.max(1, Math.round((Date.now() - t0) / 60000)) + ' min écoulées sur environ 40';
+    var pct = Math.round(S.i / S.q.length * 100);
+    $('#iv-bar').style.width = pct + '%';
+    $('#iv-prog').setAttribute('aria-valuenow', String(pct));
+    $('#iv-answer').value = S.answers[S.i] || '';
+    $('#iv-next').textContent = S.i === S.q.length - 1 ? 'Terminer l’entretien' : 'Question suivante';
+    setOrb('idle');
+    speak(q.texte);
+  }
+  function buildRelancePrompt(q, ans) {
+    var d = S.data;
+    return [
+      'Tu es Lisa, qui mène un entretien oral d’environ 40 minutes pour une plateforme de recrutement. Tu ne parles jamais d’une offre précise ni de salaire.',
+      'Profil du candidat : ' + JSON.stringify({ experiences: d.experiences, competences: d.competences }),
+      q.style === 'intro_recherche' ? 'Cette question porte sur ce que le candidat recherche. Creuse ce qu’il veut vraiment (type de rôle, secteur, environnement, ce qui le motive) et surtout ce qu’il refuse ou ne veut plus, par exemple ce qui lui a fait quitter son dernier poste.' : '',
+      '', 'Ta question : ' + q.texte, 'Sa réponse (dictée, erreurs possibles) : ' + ans, '',
+      'Décide si une question de relance est utile. Pose-en UNE si la réponse reste générale ou vague, sans exemple précis, sans chiffre ni résultat, sans dire ce que LUI a fait personnellement, ou si un point intéressant mérite d’être creusé (une difficulté évoquée, une décision, un résultat, un choix d’outil, une émotion). Ne relance pas si la réponse est déjà précise et riche.',
+      'La relance rebondit sur ses mots, en une ou deux phrases courtes, avec tutoiement et chaleur, sans liste. Exemples : « Concrètement, qu’est-ce que toi tu as fait dans ce cas ? », « Et au final, quel résultat ? », « Qu’est-ce qui a été le plus dur ? », « Comment tu t’y es pris pour ça ? ».',
+      '', 'Réponds uniquement avec ce JSON, relance valant null si aucune relance n’est utile :',
+      '{"relance":"…"}'
+    ].join('\n');
+  }
+  async function askRelance(q, ans) {
+    var ctl = new AbortController(), timer = setTimeout(function () { ctl.abort(); }, 25000);
+    try {
+      if (!S.sample) return null;
+      var res = await S.sample.json(buildRelancePrompt(q, ans), { signal: ctl.signal });
+      var t = str(res && res.relance).trim();
+      if (t.length < 12 || t.length > 400) return null;
+      return { type: q.type, style: 'relance', traits: q.traits, texte: t, relance: true };
+    } catch (e) { return null; } finally { clearTimeout(timer); }
+  }
+  async function advance(skip) {
+    if (busy) return;
+    stopMic(); stopSpeak();
+    var ans = skip ? '' : $('#iv-answer').value.trim();
+    S.answers[S.i] = ans;
+    var q = S.q[S.i];
+    if (!skip && !q.relance && ans.length >= 60 && relCount < MAXREL && S.i < S.q.length - 1) {
+      busy = true;
+      ['#iv-next', '#iv-skip', '#iv-repeat', '#mic'].forEach(function (x) { $(x).disabled = true; });
+      setOrb('thinking');
+      $('#mic-note').dataset.err = ''; $('#mic-note').textContent = 'Lisa réfléchit à ta réponse…';
+      var rel = await askRelance(q, ans);
+      busy = false;
+      ['#iv-next', '#iv-skip', '#iv-repeat', '#mic'].forEach(function (x) { $(x).disabled = false; });
+      if (rel) { S.q.splice(S.i + 1, 0, rel); relCount += 1; }
+    }
+    if (S.i >= S.q.length - 1) { renderReview(); show('review'); return; }
+    S.i += 1;
+    renderQuestion();
+  }
+  $('#iv-next').addEventListener('click', function () { advance(false); });
+  $('#iv-skip').addEventListener('click', function () { advance(true); });
+  $('#iv-repeat').addEventListener('click', function () { if (listening) stopMic(); speak(S.q[S.i].texte); });
+  $('#iv-answer').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); advance(false); } });
+
+  /* ---------- review (one correction) ---------- */
+  function renderReview() {
+    var box = $('#review-list');
+    box.textContent = '';
+    S.q.forEach(function (q, i) {
+      var id = nid('r');
+      var ta = h('textarea', { id: id, class: 'inp area', rows: '4' });
+      ta.value = S.answers[i] || '';
+      ta.addEventListener('input', function () { S.answers[i] = ta.value; });
+      box.appendChild(h('div', { class: 'item' },
+        h('label', { for: id, class: 'q', style: 'font-weight:700', text: (i + 1) + '. ' + q.texte }),
+        ta));
+    });
+  }
+  $('#review-ok').addEventListener('click', function () {
+    Array.prototype.forEach.call(document.querySelectorAll('#review-list textarea'), function (t, i) { S.answers[i] = t.value.trim(); });
+    S.locked = true;
+    finalize();
+  });
+
+  /* ---------- espace candidat: sauvegarde, photo, matchs ---------- */
+  var LABELS = { communication: 'Communication', esprit_equipe: 'Esprit d’équipe', empathie: 'Empathie', assertivite: 'Assertivité', gestion_conflits: 'Gestion des conflits', rigueur: 'Rigueur', autonomie: 'Autonomie', gestion_priorites: 'Gestion des priorités', fiabilite: 'Fiabilité', orientation_resultats: 'Orientation résultats', gestion_stress: 'Gestion du stress', resilience: 'Résilience', adaptabilite: 'Adaptabilité', curiosite: 'Curiosité', tolerance_ambiguite: 'Tolérance à l’ambiguïté', leadership: 'Leadership', capacite_motivation: 'Capacité à motiver', prise_decision: 'Prise de décision', delegation: 'Délégation', integrite: 'Intégrité', esprit_analyse: 'Esprit d’analyse', creativite: 'Créativité', engagement: 'Engagement', humilite: 'Humilité' };
+  var LV = ['', 'Faible', 'Moyen', 'Fort'];
+  var KEY = '', PKEY = '', AKEY = '';
+  var OFFERS = [
+    { t: 'Business Developer', c: 'Léman Capital Partners', lieu: 'Genève', taux: '80 – 100%', mode: 'Hybride', n: { communication: 3, orientation_resultats: 3, assertivite: 2, autonomie: 3, curiosite: 2, resilience: 2 }, k: ['business development', 'prospection', 'vente', 'client', 'négociation', 'b2b', 'crm'] },
+    { t: 'Assistant de gestion privée', c: 'Banque Rhône & Associés', lieu: 'Genève', taux: '80 – 100%', mode: 'Présentiel', n: { rigueur: 3, integrite: 3, fiabilite: 3, communication: 2, esprit_analyse: 2, gestion_stress: 2 }, k: ['finance', 'banque', 'private banking', 'gestion', 'patrimoine', 'client'] },
+    { t: 'Responsable d’exploitation hôtelière', c: 'Hôtel du Lac', lieu: 'Lausanne', taux: '80 – 100%', mode: 'Présentiel', n: { leadership: 3, gestion_priorites: 3, gestion_stress: 3, empathie: 2, delegation: 2, adaptabilite: 3 }, k: ['hôtel', 'hospitality', 'hôtellerie', 'équipe', 'exploitation', 'gestion'] },
+    { t: 'Chef de projet digital', c: 'Alpine Tech SA', lieu: 'Genève', taux: '80 – 100%', mode: 'Hybride', n: { gestion_priorites: 3, communication: 3, autonomie: 2, adaptabilite: 3, esprit_analyse: 2, tolerance_ambiguite: 3 }, k: ['projet', 'digital', 'agile', 'pilotage', 'coordination', 'outil'] },
+    { t: 'Analyste financier junior', c: 'Cabinet Meyrin Audit', lieu: 'Genève', taux: '80 – 100%', mode: 'Hybride', n: { esprit_analyse: 3, rigueur: 3, fiabilite: 3, curiosite: 2, humilite: 2, autonomie: 2 }, k: ['finance', 'analyse', 'excel', 'budget', 'reporting', 'comptab'] },
+    { t: 'Customer Success Manager', c: 'Nova Santé', lieu: 'Télétravail', taux: '60 – 80%', mode: 'Télétravail', n: { empathie: 3, communication: 3, gestion_conflits: 2, resilience: 2, esprit_equipe: 2, engagement: 3 }, k: ['client', 'service', 'relation', 'satisfaction', 'support', 'santé'] },
+    { t: 'Directeur adjoint d’établissement', c: 'Résidence Les Charmilles', lieu: 'Genève', taux: '80 – 100%', mode: 'Présentiel', n: { leadership: 3, gestion_conflits: 3, prise_decision: 3, empathie: 3, gestion_stress: 3, delegation: 2 }, k: ['direction', 'adjoint', 'établissement', 'équipe', 'budget', 'qualité', 'gestion'] },
+    { t: 'Coordinateur commercial', c: 'Atelier Horloger Rousseau', lieu: 'Genève', taux: '60 – 80%', mode: 'Présentiel', n: { creativite: 2, communication: 2, rigueur: 2, esprit_equipe: 3, engagement: 3, humilite: 3 }, k: ['vente', 'cadeaux', 'commercial', 'luxe', 'horlogerie', 'client', 'entreprise'] }
+  ];
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  var DESCS = [
+    { d: 'Léman Capital Partners accompagne des familles et des PME dans leurs projets d’investissement. Tu développes notre portefeuille de clients en Suisse romande.', m: ['Identifier et approcher de nouveaux clients et partenaires', 'Mener les premiers rendez-vous et construire les propositions', 'Suivre le pipeline dans notre CRM et en rendre compte chaque semaine'], p: 'Tu aimes convaincre sans forcer, tu es à l’aise au téléphone comme en rendez-vous et tu supportes bien les refus.' },
+    { d: 'La Banque Rhône & Associés cherche un assistant pour épauler ses gérants privés au quotidien, dans un cadre où la précision et la confidentialité sont essentielles.', m: ['Préparer les dossiers clients et les comptes rendus de rendez-vous', 'Contrôler la conformité des opérations avant validation', 'Répondre aux demandes courantes des clients'], p: 'Tu es méticuleux, discret, et tu gardes ton calme quand plusieurs demandes arrivent en même temps.' },
+    { d: 'L’Hôtel du Lac, 80 chambres, recrute la personne qui fera tourner l’exploitation au quotidien avec une équipe d’une trentaine de collaborateurs.', m: ['Piloter les équipes de réception, d’étages et de restauration', 'Arbitrer les priorités et gérer les imprévus du service', 'Suivre la qualité de service et les budgets d’exploitation'], p: 'Tu as le sens du terrain, tu sais déléguer et tu restes lucide en plein coup de feu.' },
+    { d: 'Alpine Tech développe des outils numériques pour des acteurs de la santé et de la finance. Tu coordonnes les projets entre les équipes techniques et nos clients.', m: ['Cadrer les besoins avec les clients et planifier les livraisons', 'Coordonner les équipes et lever les blocages', 'Suivre les budgets, les délais et les risques'], p: 'Tu t’adaptes vite, tu communiques clairement et tu avances même quand tout n’est pas défini.' },
+    { d: 'Le Cabinet Meyrin Audit réalise des analyses financières pour des entreprises genevoises. Un poste pour apprendre le métier au contact de profils expérimentés.', m: ['Construire des modèles et des reportings sous Excel', 'Analyser les comptes et préparer des synthèses claires', 'Vérifier la cohérence des chiffres avant livraison'], p: 'Tu es curieux, rigoureux et tu aimes comprendre pourquoi les chiffres bougent.' },
+    { d: 'Nova Santé édite une plateforme de suivi pour des cabinets médicaux. Tu es le point de contact de nos clients après la signature, à distance.', m: ['Accueillir et former les nouveaux clients', 'Répondre aux demandes et désamorcer les tensions', 'Remonter les besoins aux équipes produit'], p: 'Tu écoutes vraiment, tu restes patient et tu aimes voir un client réussir grâce à ton aide.' },
+    { d: 'La Résidence Les Charmilles accueille 60 résidents. Tu secondes la direction dans la conduite de l’établissement et l’encadrement des équipes soignantes et hôtelières.', m: ['Encadrer les équipes et traiter les situations difficiles', 'Prendre des décisions en l’absence de la direction', 'Suivre le budget, la qualité et les relations avec les familles'], p: 'Tu as de l’autorité sans dureté, de l’empathie et le sang-froid nécessaire dans les moments délicats.' },
+    { d: 'L’Atelier Horloger Rousseau crée des cadeaux d’entreprise haut de gamme. Tu assures le lien entre les clients, l’atelier et la direction.', m: ['Recevoir les demandes des entreprises et établir les devis', 'Suivre les commandes jusqu’à la livraison', 'Proposer des idées de cadeaux adaptées à chaque client'], p: 'Tu aimes le bel objet, tu travailles volontiers en petite équipe et tu es sans prétention.' }
+  ];
+  var SECT = ['finance investissement', 'banque finance', 'hôtellerie hospitality', 'digital technologie', 'finance audit', 'santé service client', 'santé établissement', 'luxe horlogerie commerce'];
+  OFFERS.forEach(function (o, i) { o.sect = SECT[i]; o.d = DESCS[i].d; o.m = DESCS[i].m; o.p = DESCS[i].p; });
+  var APPS = {};
+  function saveApps() { lsSet(AKEY, JSON.stringify(APPS)); }
+  var applying = null;
+  function openApply(o) {
+    applying = o;
+    $('#ap-title').textContent = o.t + ' · ' + o.c;
+    $('#ap-msg').value = '';
+    var dlg = $('#apply');
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    $('#ap-msg').focus();
+  }
+  function closeApply() { var dlg = $('#apply'); if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); applying = null; }
+  $('#ap-cancel').addEventListener('click', closeApply);
+  $('#ap-send').addEventListener('click', function () {
+    if (!applying) return;
+    APPS[applying.t] = { date: new Date().toISOString(), msg: $('#ap-msg').value.trim() };
+    saveApps(); closeApply(); renderJobs(); renderAppCount();
+  });
+  function renderAppCount() { var n = Object.keys(APPS).length; $('#d-apps').textContent = n ? n + ' candidature' + (n > 1 ? 's' : '') + ' envoyée' + (n > 1 ? 's' : '') + '.' : 'Aucune candidature envoyée pour l’instant.'; }
+  var SAVED = null;
+  function saveProfile() {
+    SAVED = { data: S.data, cities: S.cities, taux: S.taux, modes: S.modes, q: S.q, answers: S.answers, niveaux: S.niveaux, outils: S.outils || [], recherche: S.recherche || null, synthese: S.synthese, provisoire: !!S.provisoire, date: S.date || new Date().toISOString() };
+    lsSet(KEY, JSON.stringify(SAVED));
+  }
+  function loadProfile() {
+    var raw = lsGet(KEY);
+    if (!raw) return false;
+    try {
+      var o = JSON.parse(raw);
+      if (!o || !o.data || !o.niveaux) return false;
+      S.data = o.data; S.cities = o.cities || []; S.taux = o.taux || {}; S.modes = o.modes || {}; S.q = o.q || []; S.answers = o.answers || [];
+      S.niveaux = o.niveaux; S.outils = o.outils || []; S.recherche = o.recherche || null; S.synthese = o.synthese || ''; S.provisoire = !!o.provisoire; S.date = o.date; S.locked = true; S.analyzed = true; SAVED = o;
+      return true;
+    } catch (e) { return false; }
+  }
+  function initials() { var i = S.data.identite || {}; return ((str(i.prenom)[0] || '') + (str(i.nom)[0] || '')).toUpperCase() || 'F'; }
+  function renderPhoto() {
+    var url = S.photo || '';
+    [$('#pic')].forEach(function (b) {
+      b.textContent = '';
+      if (url) b.appendChild(h('img', { src: url, alt: '' })); else b.textContent = initials();
+    });
+    var tp = $('#toppic');
+    tp.textContent = '';
+    if (url) tp.appendChild(h('img', { src: url, alt: '' })); else tp.textContent = initials();
+    $('#photo-del').hidden = !url;
+  }
+  $('#photo-file').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f || !/^image\//.test(f.type)) return;
+    var u = URL.createObjectURL(f), img = new Image();
+    img.onload = function () {
+      var s = Math.min(img.width, img.height), cv = document.createElement('canvas');
+      cv.width = cv.height = 320;
+      cv.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 320, 320);
+      URL.revokeObjectURL(u);
+      S.photo = cv.toDataURL('image/jpeg', 0.86);
+      lsSet(PKEY, S.photo);
+      renderPhoto();
+    };
+    img.onerror = function () { URL.revokeObjectURL(u); };
+    img.src = u;
+  });
+  $('#photo-del').addEventListener('click', function () { S.photo = ''; lsSet(PKEY, null); renderPhoto(); });
+  $('#toppic').addEventListener('click', function () { if (SAVED) show('dash'); });
+
+  function cvText() {
+    var d = S.data, t = [];
+    d.experiences.forEach(function (x) { t.push(x.poste, x.entreprise, x.description); });
+    d.formations.forEach(function (f) { t.push(f.diplome, f.ecole); });
+    t.push(d.competences.join(' '), (S.outils || []).join(' '));
+    return t.join(' ').toLowerCase();
+  }
+  var STOP = ['avec', 'dans', 'pour', 'sans', 'plus', 'tout', 'tous', 'dont', 'faire', 'poste', 'postes', 'travail', 'travailler', 'veux', 'surtout', 'entreprise', 'equipe'];
+  function scoreOffer(o) {
+    var keys = Object.keys(o.n), sum = 0, rows = [];
+    keys.forEach(function (k) {
+      var c = (S.niveaux && S.niveaux[k]) || 2, w = o.n[k];
+      sum += 1 - Math.abs(c - w) / 2;
+      rows.push({ k: k, c: c, w: w, gap: Math.abs(c - w) });
+    });
+    var tr = sum / keys.length, txt = cvText();
+    var hits = o.k.filter(function (w) { return txt.indexOf(w) >= 0; });
+    var cvs = Math.min(1, hits.length / Math.max(2, o.k.length * 0.5));
+    var rc = S.recherche || {}, otxt = norm([o.t, o.sect, o.d, o.m.join(' '), o.p, o.k.join(' ')].join(' '));
+    var toks = function (arr) { var t = []; (arr || []).forEach(function (x) { norm(x).split(' ').forEach(function (w) { if (w.length >= 5 && STOP.indexOf(w) < 0 && t.indexOf(w) < 0) t.push(w); }); }); return t; };
+    var want = toks((rc.roles || []).concat(rc.secteurs || [])).filter(function (w) { return otxt.indexOf(w.slice(0, Math.max(5, w.length - 2))) >= 0; });
+    var no = toks(rc.refus).filter(function (w) { return otxt.indexOf(w.slice(0, Math.max(5, w.length - 2))) >= 0; });
+    var adj = Math.min(8, want.length * 4) - Math.min(25, no.length * 12);
+    return { pct: Math.max(5, Math.min(99, Math.round(100 * (0.7 * tr + 0.3 * cvs)) + adj)), rows: rows, hits: hits, want: want, no: no };
+  }
+  function lvlBar(n, cls) { var s = h('span', { class: 'lvl ' + (cls || ''), 'aria-label': LV[n] }); for (var i = 1; i <= 3; i++) s.appendChild(h('i', { class: i <= n ? 'on' : '' })); return s; }
+  function renderJobs() {
+    var box = $('#jobs');
+    box.textContent = '';
+    var list = OFFERS.map(function (o) { return { o: o, s: scoreOffer(o) }; }).sort(function (a, b) { return b.s.pct - a.s.pct; });
+    var wantMode = keysOn(S.modes), wantCity = S.cities.map(function (c) { return c.toLowerCase(); });
+    list.forEach(function (it) {
+      var o = it.o, s = it.s;
+      var label = s.pct >= 80 ? 'Très bon match' : s.pct >= 65 ? 'Bon match' : 'Match possible';
+      var why = h('div', { class: 'why' });
+      if (s.want.length) why.appendChild(h('span', { class: 'tag ok', text: '★ Ce que tu recherches' }));
+      if (s.no.length) why.appendChild(h('span', { class: 'tag gap', text: '✕ Contient : ' + s.no.slice(0, 2).join(', ') }));
+      s.rows.filter(function (r) { return r.gap === 0; }).slice(0, 3).forEach(function (r) { why.appendChild(h('span', { class: 'tag ok', text: '✓ ' + LABELS[r.k] })); });
+      s.rows.filter(function (r) { return r.gap === 2; }).slice(0, 2).forEach(function (r) { why.appendChild(h('span', { class: 'tag gap', text: '≠ ' + LABELS[r.k] })); });
+      var cmp = h('div', { class: 'cmp' }, h('b', { text: 'Trait' }), h('b', { text: 'Toi' }), h('b', { text: 'Recherché' }));
+      s.rows.forEach(function (r) { cmp.appendChild(h('span', { text: LABELS[r.k] })); cmp.appendChild(lvlBar(r.c)); cmp.appendChild(lvlBar(r.w, 'want')); });
+      var okCity = !wantCity.length || o.lieu === 'Télétravail' || wantCity.some(function (c) { return o.lieu.toLowerCase().indexOf(c) >= 0 || c.indexOf('monde') >= 0; });
+      var okMode = !wantMode.length || wantMode.indexOf(o.mode) >= 0;
+      var meta = [o.lieu + (okCity ? '' : ' (hors de tes lieux)'), o.taux, o.mode + (okMode ? '' : ' (hors de tes critères)')].join(' · ');
+      box.appendChild(h('article', { class: 'job' + (s.pct >= 75 ? '' : ' mid') },
+        h('div', { class: 'jobhead' },
+          h('div', {}, h('h3', { text: o.t }), h('p', { class: 'co', text: o.c }), h('p', { class: 'co', text: meta })),
+          h('div', { class: 'score' }, h('b', { text: s.pct + ' %' }), h('span', { text: label }))),
+        h('div', { class: 'meter', role: 'presentation' }, h('i', { style: 'width:' + s.pct + '%' })),
+        why,
+        h('details', { class: 'jd' }, h('summary', { text: 'Voir la description du poste' }),
+          h('p', { style: 'margin-top:10px', text: o.d }),
+          h('h4', { text: 'Missions' }), (function () { var ul = h('ul', {}); o.m.forEach(function (m) { ul.appendChild(h('li', { text: m })); }); return ul; })(),
+          h('h4', { text: 'Profil recherché' }), h('p', { text: o.p })),
+        (function () {
+          var ap = APPS[o.t], foot = h('div', { class: 'jobfoot' });
+          if (ap) {
+            foot.appendChild(h('span', { class: 'btn sent', role: 'status', text: '✓ Candidature envoyée le ' + new Date(ap.date).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' }) }));
+            foot.appendChild(h('button', { type: 'button', class: 'link', text: 'Retirer ma candidature', onclick: function () { delete APPS[o.t]; saveApps(); renderJobs(); renderAppCount(); } }));
+          } else {
+            foot.appendChild(h('button', { type: 'button', class: 'btn', text: 'Postuler', 'aria-label': 'Postuler au poste ' + o.t + ' chez ' + o.c, onclick: function () { openApply(o); } }));
+          }
+          return foot;
+        })()));
+    });
+  }
+  function renderDash() {
+    var i = S.data.identite || {};
+    $('#d-name').textContent = ((str(i.prenom) + ' ' + str(i.nom)).trim()) || 'Mon espace';
+    var x = S.data.experiences[0];
+    $('#d-role').textContent = x ? [x.poste, x.entreprise].filter(Boolean).join(' · ') : '';
+    $('#d-where').textContent = S.cities.length ? 'Cherche à : ' + S.cities.join(', ') : '';
+    var dt = S.date ? new Date(S.date) : null;
+    $('#d-when').textContent = 'Passé le ' + (dt ? dt.toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric' }) : '—') + ' · ' + S.q.length + ' questions. Le nouvel entretien remplace l’ancien.';
+    var p = $('#d-prov');
+    p.hidden = !S.provisoire;
+    if (S.provisoire) p.textContent = 'L’analyse n’a pas pu être faite : tes niveaux sont provisoires (moyens partout). Repasse l’entretien depuis un affichage où l’analyse est disponible.';
+    $('#d-syn').textContent = S.synthese || 'Pas de synthèse pour le moment.';
+    var st = $('#d-strong');
+    st.textContent = '';
+    Object.keys(S.niveaux || {}).filter(function (k) { return S.niveaux[k] === 3; }).slice(0, 6).forEach(function (k) { st.appendChild(h('span', { class: 'tag', text: LABELS[k] })); });
+    renderSeek();
+    var tl = $('#d-tools');
+    tl.textContent = '';
+    var tools = (S.outils || []).concat(S.data.competences || []).filter(function (x, i, a) { return a.indexOf(x) === i; });
+    tools.slice(0, 20).forEach(function (t) { tl.appendChild(h('span', { class: 'tag', text: t })); });
+    if (!tools.length) tl.appendChild(h('p', { class: 'empty', text: 'Aucun outil relevé.' }));
+    renderPhoto();
+    renderJobs();
+    renderAppCount();
+  }
+  function showDash() { renderDash(); show('dash'); }
+
+  /* ---------- ce que je recherche: modifiable ---------- */
+  var seekEdit = false;
+  var GROUPS = [
+    { k: 'roles', t: 'Postes visés', ph: 'Ex. Directeur adjoint, Business developer', cls: 'tag' },
+    { k: 'secteurs', t: 'Secteurs', ph: 'Ex. hôtellerie, finance, santé', cls: 'tag' },
+    { k: 'envies', t: 'Ce qui te motive', ph: 'Ex. équipe soudée, autonomie', cls: 'tag' },
+    { k: 'refus', t: 'Ce que tu ne veux pas', ph: 'Ex. horaires de nuit, prospection', cls: 'tag gap', pre: '✕ ' }
+  ];
+  function persistSeek() { saveProfile(); renderJobs(); }
+  function chipRow(arr, cls, pre, onrm) {
+    var row = h('div', { class: 'chips' });
+    arr.forEach(function (t, i) {
+      if (onrm) row.appendChild(h('button', { type: 'button', class: 'chip on-edit ' + cls, 'aria-label': 'Retirer ' + t, text: (pre || '') + t + '  ×', onclick: function () { onrm(i); } }));
+      else row.appendChild(h('span', { class: cls, text: (pre || '') + t }));
+    });
+    return row;
+  }
+  function addForm(ph, label, onadd) {
+    var id = nid('sk'), inp = h('input', { id: id, class: 'inp', placeholder: ph, autocomplete: 'off', 'aria-label': label });
+    var form = h('form', { class: 'row' }, inp, h('button', { type: 'submit', class: 'btn ghost', style: 'min-height:44px;padding:0 18px', text: 'Ajouter' }));
+    form.addEventListener('submit', function (e) { e.preventDefault(); var v = inp.value.trim(); if (v) { inp.value = ''; onadd(v, inp); } });
+    return form;
+  }
+  function renderSeek() {
+    var box = $('#d-seek-card');
+    box.textContent = '';
+    if (!S.recherche) S.recherche = { resume: '', roles: [], secteurs: [], envies: [], refus: [] };
+    var rc = S.recherche;
+    box.appendChild(h('div', { class: 'actions', style: 'align-items:center' },
+      h('h2', { text: 'Ce que tu recherches' }),
+      h('button', { type: 'button', class: 'btn ghost', style: 'min-height:38px;font-size:14px;padding:0 16px', text: seekEdit ? 'Terminé' : 'Modifier', onclick: function () { seekEdit = !seekEdit; renderSeek(); } })));
+    if (!seekEdit && rc.resume) box.appendChild(h('p', { class: 'lead', style: 'font-size:15px', text: rc.resume }));
+    if (seekEdit) box.appendChild(h('p', { class: 'hint', text: 'Ajoute autant de postes, secteurs et envies que tu veux. Les offres se reclassent tout de suite. Touche un élément pour le retirer.' }));
+    GROUPS.forEach(function (g) {
+      var arr = rc[g.k] = rc[g.k] || [];
+      if (!seekEdit && !arr.length) return;
+      box.appendChild(h('p', { class: 'hint', style: 'font-weight:600;margin:4px 0 -6px', text: g.t }));
+      box.appendChild(chipRow(arr, g.cls, g.pre, seekEdit ? function (i) { arr.splice(i, 1); persistSeek(); renderSeek(); } : null));
+      if (seekEdit) box.appendChild(addForm(g.ph, 'Ajouter : ' + g.t, function (v) { if (arr.some(function (x) { return norm(x) === norm(v); }) || arr.length >= 12) return; arr.push(v); persistSeek(); renderSeek(); }));
+    });
+    // lieux
+    var lieuxHead = h('p', { class: 'hint', style: 'font-weight:600;margin:4px 0 -6px', text: 'Lieux' });
+    if (seekEdit || S.cities.length) {
+      box.appendChild(lieuxHead);
+      box.appendChild(chipRow(S.cities, 'tag', '', seekEdit ? function (i) { S.cities.splice(i, 1); persistSeek(); renderSeek(); } : null));
+    }
+    if (seekEdit) {
+      var msg = h('p', { class: 'msg err', role: 'status', hidden: '' });
+      box.appendChild(addForm('Ex. Genève, Dubaï, Monde entier', 'Ajouter un lieu', async function (v) {
+        msg.hidden = false; msg.textContent = 'Vérification de « ' + v + ' »…';
+        var r = await checkPlace(v);
+        if (r.ok) { if (!S.cities.some(function (c) { return norm(c) === norm(r.ok); })) S.cities.push(r.ok); persistSeek(); renderSeek(); }
+        else { msg.textContent = r.err; (r.sugg || []).forEach(function (p) { msg.appendChild(h('button', { type: 'button', class: 'chip', style: 'margin-left:8px;min-height:36px', text: p, onclick: function () { if (!S.cities.some(function (c) { return norm(c) === norm(p); })) S.cities.push(p); persistSeek(); renderSeek(); } })); }); }
+      }));
+      box.appendChild(msg);
+      [['Taux de travail', TAUX, S.taux], ['Mode de travail', MODES, S.modes]].forEach(function (g) {
+        box.appendChild(h('p', { class: 'hint', style: 'font-weight:600;margin:4px 0 -6px', text: g[0] }));
+        var row = h('div', { class: 'chips' });
+        g[1].forEach(function (n) { row.appendChild(h('button', { type: 'button', class: 'chip', 'aria-pressed': g[2][n] ? 'true' : 'false', text: n, onclick: function () { g[2][n] = !g[2][n]; persistSeek(); renderSeek(); } })); });
+        box.appendChild(row);
+      });
+    } else {
+      var wm = keysOn(S.taux).concat(keysOn(S.modes));
+      if (wm.length) box.appendChild(chipRow(wm, 'tag', '', null));
+    }
+    if (!seekEdit && !GROUPS.some(function (g) { return rc[g.k].length; }) && !S.cities.length) box.appendChild(h('p', { class: 'empty', text: 'Rien pour l’instant. Touche « Modifier » pour dire ce que tu cherches.' }));
+  }
+  /* ---------- analyse de l'entretien ---------- */
+  function buildScorePrompt() {
+    var qa = S.q.map(function (q, i) { return 'Q' + (i + 1) + ' [' + q.type + '] ' + q.texte + '\nR' + (i + 1) + ' : ' + (S.answers[i] || '(pas de réponse)'); }).join('\n\n');
+    return [
+      'Tu es un évaluateur RH rigoureux et bienveillant. Voici la retranscription d’un entretien oral de 30 minutes entre Lisa (IA) et un candidat. Les erreurs de dictée sont possibles.',
+      '', qa, '',
+      'Évalue le candidat sur ces 24 traits : ' + TRAITS.join(', ') + '.',
+      'Pour chaque trait, donne un niveau parmi "faible", "moyen" ou "fort", fondé sur ce que ses réponses montrent réellement (comportements, exemples concrets, manière de raisonner), pas sur ce qu’il prétend être. Si une réponse ne donne aucune trace d’un trait, mets "moyen". Un niveau n’est ni bon ni mauvais en soi : il sert à retrouver les postes qui demandent ce niveau.',
+      'Relève aussi la liste des logiciels et outils métier que le candidat dit utiliser dans ses réponses (noms propres uniquement, sans doublon, 15 au maximum).',
+      'Relève aussi ce que le candidat RECHERCHE, surtout d’après sa réponse à la question « que recherches-tu ? » : "resume" (une phrase avec « tu »), "roles" (types de postes visés), "secteurs", "envies" (ce qui le motive, l’environnement voulu), "refus" (ce qu’il ne veut plus ou surtout pas). Chaque liste contient 0 à 5 éléments courts, en français, et reste vide si rien n’est dit.',
+      'Rédige aussi une synthèse de 2 à 3 phrases en français, avec « tu », qui décrit sa manière de travailler et ce qui ressort de son parcours.',
+      '', 'Réponds uniquement avec ce JSON :',
+      '{"niveaux":{"communication":"moyen"},"synthese":"…","outils":["Excel"],"recherche":{"resume":"…","roles":["…"],"secteurs":["…"],"envies":["…"],"refus":["…"]}}'
+    ].join('\n');
+  }
+  async function analyzeInterview() {
+    var ctl = new AbortController();
+    S.ctl = ctl;
+    show('analyze', 4);
+    setOrb('thinking');
+    $('#analyze-title').textContent = 'Lisa analyse ton entretien';
+    setStatus('Elle relit tes réponses et cherche les postes qui te ressemblent…');
+    var niv = {}, syn = '', prov = false, outils = [], rech = { resume: '', roles: [], secteurs: [], envies: [], refus: [] };
+    TRAITS.forEach(function (t) { niv[t] = 2; });
+    try {
+      if (!(await ensureSample())) throw { code: 'no_sample' };
+      var res = await S.sample.json(buildScorePrompt(), { signal: ctl.signal });
+      var n = res && res.niveaux, got = 0;
+      if (n && typeof n === 'object') TRAITS.forEach(function (t) { var v = str(n[t]).toLowerCase(); var l = v.indexOf('fort') === 0 ? 3 : v.indexOf('faible') === 0 ? 1 : v.indexOf('moy') === 0 ? 2 : 0; if (l) { niv[t] = l; got++; } });
+      if (got < 12) throw { code: 'invalid_json' };
+      syn = str(res.synthese).trim();
+      var rr = res.recherche || {};
+      var lst = function (v) { return (Array.isArray(v) ? v : []).map(function (x) { return str(x).trim(); }).filter(function (x) { return x && x.length < 80; }).slice(0, 6); };
+      rech = { resume: str(rr.resume).trim(), roles: lst(rr.roles), secteurs: lst(rr.secteurs), envies: lst(rr.envies), refus: lst(rr.refus) };
+      outils = (Array.isArray(res.outils) ? res.outils : []).map(function (x) { return str(x).trim(); }).filter(function (x) { return x && x.length < 40; }).filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 15);
+    } catch (e) {
+      if (ctl.signal.aborted) { prov = true; } else { prov = true; }
+    }
+    S.niveaux = niv; S.outils = outils; S.recherche = rech; S.synthese = syn; S.provisoire = prov; S.date = new Date().toISOString();
+    saveProfile();
+    showDash();
+  }
+  $('#redo-same').addEventListener('click', function () { S.answers = []; S.locked = false; makeQuestions(false); });
+  $('#redo-new').addEventListener('click', function () {
+    S.files = []; S.data = emptyData(); S.analyzed = false; S.sources = []; S.skipped = []; S.q = []; S.answers = []; S.i = 0; S.locked = false;
+    $('#generic').hidden = true; $('#paste').value = ''; $('#profile-msg').hidden = true;
+    refreshGo(); show('profile');
+  });
+  $('#see-profile').addEventListener('click', function () { finalize(true); show('done'); });
+
+  /* ---------- compte (local, prototype) ---------- */
+  var USERS_KEY = 'findr.users.v1', SESSION_KEY = 'findr.session.v1', ME = null;
+  function getUsers() { try { return JSON.parse(lsGet(USERS_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  async function sha(t) {
+    try {
+      var b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+      return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    } catch (e) { return btoa(unescape(encodeURIComponent(t))); }
+  }
+  function setUser(id, user) {
+    ME = { id: id, email: user.email, prenom: user.prenom || '' };
+    KEY = 'findr.profile.' + id; PKEY = 'findr.photo.' + id; AKEY = 'findr.apps.' + id;
+    try { APPS = JSON.parse(lsGet(AKEY) || '{}') || {}; } catch (e) { APPS = {}; }
+    S.photo = lsGet(PKEY) || '';
+    lsSet(SESSION_KEY, id);
+  }
+  var authMode = 'up';
+  function setAuthMode(m) {
+    authMode = m;
+    $('#tab-up').setAttribute('aria-pressed', String(m === 'up')); $('#tab-in').setAttribute('aria-pressed', String(m === 'in'));
+    $('#tab-up').classList.toggle('on', m === 'up'); $('#tab-in').classList.toggle('on', m === 'in');
+    $('#au-first-w').hidden = m === 'in';
+    $('#au-pwhint').hidden = m === 'in';
+    $('#au-title').textContent = m === 'up' ? 'Créer mon profil' : 'Content de te revoir';
+    $('#au-lead').textContent = m === 'up' ? 'Quelques secondes, puis tu déposes ton CV.' : 'Connecte-toi pour retrouver ton profil et tes matchs.';
+    $('#au-go').textContent = m === 'up' ? 'Créer mon compte' : 'Me connecter';
+    $('#au-pw').setAttribute('autocomplete', m === 'up' ? 'new-password' : 'current-password');
+    $('#au-msg').hidden = true;
+  }
+  function authErr(t) { var m = $('#au-msg'); m.textContent = t; m.hidden = false; }
+  function afterLogin() {
+    if (loadProfile()) showDash(); else show('profile');
+  }
+  $('#w-start').addEventListener('click', function () { setAuthMode('up'); show('login'); });
+  $('#w-login').addEventListener('click', function () { setAuthMode('in'); show('login'); });
+  $('#tab-up').addEventListener('click', function () { setAuthMode('up'); });
+  $('#tab-in').addEventListener('click', function () { setAuthMode('in'); });
+  $('#au-back').addEventListener('click', function () { show('welcome'); });
+  $('#auth-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var email = $('#au-email').value.trim().toLowerCase(), pw = $('#au-pw').value, first = $('#au-first').value.trim();
+    $('#au-msg').hidden = true;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) { authErr('Cet e-mail ne semble pas valide.'); return; }
+    var id = (await sha('id:' + email)).slice(0, 20), h1 = await sha(email + ':' + pw), users = getUsers();
+    if (authMode === 'up') {
+      if (users[id]) { authErr('Un compte existe déjà avec cet e-mail. Connecte-toi.'); return; }
+      if (pw.length < 8) { authErr('Choisis un mot de passe d’au moins 8 caractères.'); return; }
+      users[id] = { email: email, h: h1, prenom: first, created: new Date().toISOString() };
+      var first_user = Object.keys(users).length === 1;
+      lsSet(USERS_KEY, JSON.stringify(users));
+      setUser(id, users[id]);
+      if (first_user) { // reprend d'éventuelles données de test d'avant les comptes
+        var o = lsGet('findr.profile.v1'), ph = lsGet('findr.photo.v1');
+        if (o) lsSet(KEY, o);
+        if (ph) { lsSet(PKEY, ph); S.photo = ph; }
+      }
+      if (first) S.data.identite.prenom = first;
+      afterLogin();
+    } else {
+      if (!users[id] || users[id].h !== h1) { authErr('E-mail ou mot de passe incorrect.'); return; }
+      setUser(id, users[id]);
+      afterLogin();
+    }
+    $('#au-pw').value = '';
+  });
+  $('#logout').addEventListener('click', function () { lsSet(SESSION_KEY, null); location.reload(); });
+  function boot() {
+    var sid = lsGet(SESSION_KEY), users = getUsers();
+    if (sid && users[sid]) { setUser(sid, users[sid]); afterLogin(); } else { setAuthMode('up'); show('welcome'); }
+  }
+
+  /* ---------- capability ---------- */
+  refreshGo();
+  boot();
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('sample').then(function (fn) {
+      S.sample = fn || null;
+      $('#sample-note').textContent = noSampleCopy();
+      $('#sample-note').hidden = !!S.sample;
+    }, function () { $('#sample-note').hidden = false; });
+  } else {
+    $('#sample-note').textContent = noSampleCopy();
+    $('#sample-note').hidden = false;
+  }
+})();
+</script>

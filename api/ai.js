@@ -12,14 +12,18 @@ async function getUser(token) {
   return u && u.id ? u : null;
 }
 
+// Les nouvelles clés Supabase (sb_secret_...) ne sont pas des JWT : elles vont uniquement dans "apikey".
+function serviceHeaders() {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  const h = { apikey: key, 'Content-Type': 'application/json' };
+  if (!key.startsWith('sb_')) h.Authorization = `Bearer ${key}`;
+  return h;
+}
+
 async function underLimit(uid) {
   const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/bump_usage`, {
     method: 'POST',
-    headers: {
-      apikey: process.env.SUPABASE_SERVICE_KEY,
-      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
-      'Content-Type': 'application/json'
-    },
+    headers: serviceHeaders(),
     body: JSON.stringify({ uid, lim: DAILY_LIMIT })
   });
   if (!r.ok) return true; // en cas d'erreur de comptage, on ne bloque pas le candidat
